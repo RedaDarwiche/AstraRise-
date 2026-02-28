@@ -7,22 +7,24 @@ const BAD_WORDS = ['scam', 'cheat', 'rigged', 'hack', 'fuck', 'shit', 'bitch', '
 
 function containsProfanity(text) {
     const lowerText = text.toLowerCase();
-    // Check if any bad word is present
     return BAD_WORDS.some(word => lowerText.includes(word));
 }
 
-// Show big in-game announcement banner (stays 25 seconds or until dismiss)
+// Show big in-game announcement banner
 function showAnnouncementBanner(text) {
     const banner = document.getElementById('announcementBanner');
     const textEl = document.getElementById('announcementBannerText');
     if (!banner || !textEl) return;
+    
     if (announcementBannerTimer) {
         clearTimeout(announcementBannerTimer);
         announcementBannerTimer = null;
     }
+    
     const safeText = (text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     textEl.innerHTML = safeText;
     banner.style.display = 'flex';
+    
     announcementBannerTimer = setTimeout(() => {
         dismissAnnouncementBanner();
         announcementBannerTimer = null;
@@ -40,31 +42,41 @@ function dismissAnnouncementBanner() {
 
 // Initialize Chat
 function initChat() {
-    // Clear to avoid visual duplication on re-init
     const chatContainer = document.getElementById('chatMessages');
     if(chatContainer) chatContainer.innerHTML = '';
 
     if (socket && socket.connected !== undefined) {
         // Listen for chat history
         socket.on('chat_history', (messages) => {
-            // FIX: Overwrite history instead of appending
+            // Overwrite history to sync with server
             globalMessages = messages;
             renderChatMessages();
         });
 
-        // Listen for new messages
+        // Listen for new messages from OTHERS
         socket.on('new_chat_message', (msg) => {
-            globalMessages.push(msg);
-            if (globalMessages.length > 50) globalMessages.shift();
-            renderChatMessages();
-            // Show big announcement banner when admin sends one
+            // DEDUPLICATION CHECK:
+            // Check if we already have this message (by ID or exact content/time/author match)
+            // This prevents the "double message" bug since we render our own messages immediately now.
+            const exists = globalMessages.some(m => 
+                (m.id && m.id === msg.id) || 
+                (m.author === msg.author && m.text === msg.text && Math.abs(m.time - msg.time) < 500)
+            );
+
+            if (!exists) {
+                globalMessages.push(msg);
+                if (globalMessages.length > 50) globalMessages.shift();
+                renderChatMessages();
+            }
+
+            // Show announcement banner if applicable
             if (msg.author === '📢 ANNOUNCEMENT' && msg.text) {
                 showAnnouncementBanner(msg.text);
             }
         });
     }
 
-    // Load offline messages if no server
+    // Load offline messages if no server connection logic kicked in
     if (!globalMessages.length) {
         const saved = localStorage.getItem('astrarise_offline_chat');
         if (saved) {
@@ -89,11 +101,12 @@ function renderChatMessages() {
 
         const authorClass = msg.isOwner ? 'chat-author owner' : 'chat-author';
 
-        // Escape HTML to prevent XSS (basic)
-        const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        const safeAuthor = msg.author.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        // Escape HTML to prevent XSS
+        const safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const safeAuthor = (msg.author || 'User').replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
         let authorDisplay = safeAuthor;
+        
         // Show rank tags
         let tagHTML = '';
         if (msg.author !== '📢 ANNOUNCEMENT') {
@@ -117,7 +130,7 @@ function renderChatMessages() {
         chatContainer.appendChild(msgEl);
     });
 
-    // Scroll to bottom
+    // Auto-scroll to bottom
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
@@ -137,7 +150,7 @@ function sendChatMessage() {
         return;
     }
     
-    // FIX: Moderation Check
+    // Moderation Check (Owner Bypass)
     if (containsProfanity(text) && currentUser.email !== 'redadarwichepaypal@gmail.com') {
         showToast('Message blocked: Profanity detected.', 'error');
         input.value = '';
@@ -147,23 +160,27 @@ function sendChatMessage() {
     const isOwnerUser = currentUser.email === 'redadarwichepaypal@gmail.com';
     const equippedRank = typeof getEquippedRank === 'function' ? getEquippedRank() : null;
 
+    // Create message object with unique ID
     const msgData = {
         author: userProfile?.username || 'User',
         text: text,
         isOwner: isOwnerUser,
         equippedRank: equippedRank,
-        time: Date.now()
+        time: Date.now(),
+        id: Date.now() + Math.random().toString(36).substr(2, 9) // Unique ID for deduplication
     };
 
-    // Try server first
+    // 1. OPTIMISTIC RENDER: Show message immediately to sender
+    globalMessages.push(msgData);
+    if (globalMessages.length > 50) globalMessages.shift();
+    renderChatMessages();
+
+    // 2. Send to Server
     if (socket && socket.connected) {
         socket.emit('send_chat', msgData);
     } else {
-        // Offline fallback — add locally
-        globalMessages.push(msgData);
-        if (globalMessages.length > 50) globalMessages.shift();
+        // Offline fallback
         localStorage.setItem('astrarise_offline_chat', JSON.stringify(globalMessages));
-        renderChatMessages();
     }
 
     input.value = '';
