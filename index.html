@@ -266,7 +266,7 @@
             <!-- TOWERS -->
             <div class="page" id="page-towers" style="display:none;"><div class="game-container"><div class="game-header"><h2>Towers</h2><p>Climb to the top and cash out</p></div><div class="game-body"><div class="towers-info"><div class="dice-stat"><span>Multiplier</span><span id="towersMultiplier">1.00x</span></div><div class="dice-stat"><span>Profit</span><span id="towersProfit">0.00</span></div></div><div class="towers-grid" id="towersGrid"></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="towersBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('towersBet').value=Math.floor(document.getElementById('towersBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('towersBet').value=document.getElementById('towersBet').value*2">2x</button></div></div><div class="bet-input-group"><label>Difficulty</label><select id="towersDifficulty" class="bet-input"><option value="easy">Easy (1/3 mine)</option><option value="medium" selected>Medium (1/2 mine)</option><option value="hard">Hard (2/4 mine)</option></select></div><button class="btn btn-play" id="towersBtn" onclick="startTowers()">Start Game</button><button class="btn btn-cashout" id="towersCashout" onclick="cashoutTowers()" style="display:none;">Cash Out</button></div></div></div>
 
-            <!-- ROULETTE -->
+                        <!-- ROULETTE -->
             <div class="page" id="page-roulette" style="display:none;">
                 <div class="game-container">
                     <div class="game-header"><h2>Roulette</h2><p>Pick Red, Black, or Green</p></div>
@@ -274,7 +274,9 @@
                         <div class="roulette-visual">
                             <div class="roulette-spin-area">
                                 <div class="roulette-pointer-arrow">▼</div>
-                                <div class="roulette-track" id="rouletteTrack"></div>
+                                <div class="roulette-track-wrapper">
+                                    <div class="roulette-track" id="rouletteTrack"></div>
+                                </div>
                             </div>
                             <div class="roulette-last-results" id="rouletteHistory"></div>
                         </div>
@@ -298,20 +300,20 @@
                 </div>
             </div>
 
-            <!-- CASE BATTLE -->
+                        <!-- CASE BATTLE -->
             <div class="page" id="page-cases" style="display:none;">
                 <div class="game-container" style="max-width:900px;">
                     <div class="game-header"><h2>Case Battle</h2><p>Both players spin — highest tag value wins everything!</p></div>
                     <div class="game-body">
                         <div class="case-battle-area">
                             <div class="case-player-col">
-                                <h3>You</h3>
+                                <h3 id="casePlayerLeftName">You</h3>
                                 <div class="case-spin-reel" id="caseReelLeft"></div>
                                 <div class="case-result-tag" id="caseResultLeft"></div>
                             </div>
                             <div class="case-vs">VS</div>
                             <div class="case-player-col">
-                                <h3>Bot</h3>
+                                <h3 id="casePlayerRightName">Opponent</h3>
                                 <div class="case-spin-reel" id="caseReelRight"></div>
                                 <div class="case-result-tag" id="caseResultRight"></div>
                             </div>
@@ -320,14 +322,19 @@
                     </div>
                     <div class="game-controls">
                         <div class="bet-input-group">
-                            <label>Case Cost (both players pay)</label>
-                            <div class="bet-input-wrapper">
-                                <input type="number" id="caseBet" min="50" value="100" class="bet-input">
-                                <button class="bet-btn-half" onclick="document.getElementById('caseBet').value=Math.floor(document.getElementById('caseBet').value/2)">1/2</button>
-                                <button class="bet-btn-double" onclick="document.getElementById('caseBet').value=document.getElementById('caseBet').value*2">2x</button>
-                            </div>
+                            <label>Select Case</label>
+                            <select id="caseSelect" class="bet-input"></select>
                         </div>
-                        <button class="btn btn-play" id="caseStartBtn" onclick="startCaseBattle()">Open Case Battle</button>
+                        <div style="display:flex;gap:10px;">
+                            <button class="btn btn-play" style="flex:1;" id="caseStartBtn" onclick="createCaseBattle()">Create Battle</button>
+                            <button class="btn btn-cashout" style="flex:1;" id="caseBotBtn" onclick="playVsBot()" disabled>Play vs Bot</button>
+                        </div>
+                    </div>
+                    <div style="margin-top:20px;">
+                        <h3 style="color:var(--text-secondary);margin-bottom:12px;">⚔️ Open Battles</h3>
+                        <div id="caseLobbies" class="case-lobbies-list">
+                            <div class="loading" style="padding:12px;">No open battles. Create one!</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -410,7 +417,7 @@
                     </div>
                     <div class="vault-passive-info">
                         <span class="vault-passive-rate" id="vaultPassiveRate">+0/sec</span>
-                        <span class="vault-passive-label">Passive Income (5% online, 1% offline)</span>
+                                                <span class="vault-passive-label">Passive Income (2% online, 1% offline)</span>
                     </div>
                     <div class="vault-offline-earnings" id="vaultOfflineEarnings" style="display:none;">
                         <span>💤 While you were away, you earned:</span>
