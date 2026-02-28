@@ -1,8 +1,7 @@
 // chat.js
-let globalMessages = [];
+let globalMessages =[];
 let announcementBannerTimer = null;
 
-// Show big in-game announcement banner (stays 25 seconds or until dismiss)
 function showAnnouncementBanner(text) {
     const banner = document.getElementById('announcementBanner');
     const textEl = document.getElementById('announcementBannerText');
@@ -29,30 +28,44 @@ function dismissAnnouncementBanner() {
     if (banner) banner.style.display = 'none';
 }
 
-// Initialize Chat
 function initChat() {
     renderChatMessages();
 
     if (socket && socket.connected !== undefined) {
-        // Listen for chat history
         socket.on('chat_history', (messages) => {
             globalMessages = messages;
             renderChatMessages();
+            
+            // MAGIC SYNC: Check history so late-joiners get frozen too
+            const announcements = messages.filter(m => m.author === '📢 ANNOUNCEMENT');
+            if (announcements.length > 0) {
+                const lastMsg = announcements[announcements.length - 1].text;
+                if (lastMsg.includes('❄️ Betting is temporarily frozen')) {
+                    if (typeof window.applyServerMode === 'function') window.applyServerMode('freeze_bets');
+                } else if (lastMsg.includes('✅ Betting has resumed')) {
+                    if (typeof window.applyServerMode === 'function') window.applyServerMode('normal');
+                }
+            }
         });
 
-        // Listen for new messages
         socket.on('new_chat_message', (msg) => {
             globalMessages.push(msg);
             if (globalMessages.length > 50) globalMessages.shift();
             renderChatMessages();
-            // Show big announcement banner when admin sends one
+            
             if (msg.author === '📢 ANNOUNCEMENT' && msg.text) {
                 showAnnouncementBanner(msg.text);
+                
+                // MAGIC SYNC: Instantly freeze all active players when announcement drops
+                if (msg.text.includes('❄️ Betting is temporarily frozen')) {
+                    if (typeof window.applyServerMode === 'function') window.applyServerMode('freeze_bets');
+                } else if (msg.text.includes('✅ Betting has resumed')) {
+                    if (typeof window.applyServerMode === 'function') window.applyServerMode('normal');
+                }
             }
         });
     }
 
-    // Load offline messages if no server
     if (!globalMessages.length) {
         const saved = localStorage.getItem('astrarise_offline_chat');
         if (saved) {
@@ -65,54 +78,38 @@ function initChat() {
 function renderChatMessages() {
     const chatContainer = document.getElementById('chatMessages');
     if (!chatContainer) return;
-
     chatContainer.innerHTML = '';
 
     globalMessages.forEach(msg => {
         const date = new Date(msg.time);
         const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-
         const msgEl = document.createElement('div');
         msgEl.className = 'chat-msg';
-
         const authorClass = msg.isOwner ? 'chat-author owner' : 'chat-author';
-
-        // Escape HTML to prevent XSS (basic)
         const safeText = msg.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const safeAuthor = msg.author.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-        let authorDisplay = safeAuthor;
-        // Show rank tags (owner gets both OWNER + equipped rank) — never show tags for system announcements
         let tagHTML = '';
         if (msg.author !== '📢 ANNOUNCEMENT') {
-            if (msg.isOwner) {
-                tagHTML += '<span class="rank-tag rank-owner">OWNER</span>';
-            }
-            if (msg.equippedRank && typeof getRankTagHTML === 'function') {
-                tagHTML += getRankTagHTML(false, msg.equippedRank);
-            }
+            if (msg.isOwner) tagHTML += '<span class="rank-tag rank-owner">OWNER</span>';
+            if (msg.equippedRank && typeof getRankTagHTML === 'function') tagHTML += getRankTagHTML(false, msg.equippedRank);
         }
-        authorDisplay = tagHTML + safeAuthor;
-
+        
         msgEl.innerHTML = `
             <div class="chat-msg-header">
-                <span class="${authorClass}">${authorDisplay}</span>
+                <span class="${authorClass}">${tagHTML}${safeAuthor}</span>
                 <span class="chat-time">${timeStr}</span>
             </div>
             <div class="chat-text">${safeText}</div>
         `;
-
         chatContainer.appendChild(msgEl);
     });
-
-    // Scroll to bottom
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 function sendChatMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
-
     if (!text) return;
 
     if (typeof currentUser === 'undefined' || !currentUser) {
@@ -136,27 +133,21 @@ function sendChatMessage() {
         time: Date.now()
     };
 
-    // Try server first
     if (socket && socket.connected) {
         socket.emit('send_chat', msgData);
     } else {
-        // Offline fallback — add locally
         globalMessages.push(msgData);
         if (globalMessages.length > 50) globalMessages.shift();
         localStorage.setItem('astrarise_offline_chat', JSON.stringify(globalMessages));
         renderChatMessages();
     }
-
     input.value = '';
 }
 
 function handleChatInput(e) {
-    if (e.key === 'Enter') {
-        sendChatMessage();
-    }
+    if (e.key === 'Enter') sendChatMessage();
 }
 
-// Ensure initChat is called
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(initChat, 1000);
 });
