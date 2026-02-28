@@ -65,12 +65,6 @@ function renderHands(showDealerHole = false) {
 function startBlackjack() {
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
 
-    // FREEZE CHECK
-    if (window.serverMode === 'freeze_bets') {
-        showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
-        return;
-    }
-
     const bet = parseInt(document.getElementById('bjBet').value);
     if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
     if (bet > userBalance) { showToast('Insufficient balance', 'error'); return; }
@@ -92,7 +86,6 @@ function startBlackjack() {
 
     renderHands();
 
-    // Check blackjack
     if (cardValue(bjPlayerHand) === 21) {
         bjStand();
     }
@@ -113,19 +106,9 @@ function bjHit() {
 function bjStand() {
     if (!bjGameActive) return;
 
-    const trollMode = getTrollMode();
-
     // Dealer draws
     while (cardValue(bjDealerHand) < 17) {
         bjDealerHand.push(bjDeck.pop());
-    }
-
-    if (trollMode === 'always_lose') {
-        // Force dealer to have better hand
-        while (cardValue(bjDealerHand) <= cardValue(bjPlayerHand) && cardValue(bjDealerHand) < 21) {
-            bjDealerHand.push(bjDeck.pop());
-            if (cardValue(bjDealerHand) > 21) break;
-        }
     }
 
     renderHands(true);
@@ -149,7 +132,6 @@ function bjEndGame(result) {
 
     let effectiveMultiplier = getGlobalMultiplier();
 
-    // Baseline win logic
     const isBlackjack = bjPlayerHand.length === 2 && cardValue(bjPlayerHand) === 21;
     let baseMultiplier = 0;
     if (result === 'win' || result === 'dealer_bust') baseMultiplier = isBlackjack ? 2.5 : 2;
@@ -157,20 +139,14 @@ function bjEndGame(result) {
 
     let isWin = baseMultiplier >= 2;
 
-    // Apply troll logic
     const tResult = handleTrollResult(isWin, baseMultiplier, bjBetAmount);
-    if (tResult.frozen) return;
-
     isWin = tResult.win;
 
-    // Force outcome
+    // Adjust logic if global multiplier affected outcome
     if (isWin && (result === 'lose' || result === 'bust')) {
         result = 'win';
         baseMultiplier = Math.max(2, tResult.multiplier);
     } else if (!isWin && (result === 'win' || result === 'dealer_bust')) {
-        result = 'lose';
-        baseMultiplier = 0;
-    } else if (!isWin && result === 'push' && tResult.multiplier === 0) {
         result = 'lose';
         baseMultiplier = 0;
     }
@@ -187,9 +163,7 @@ function bjEndGame(result) {
             break;
         case 'dealer_bust':
         case 'win':
-            const isBlackjack = bjPlayerHand.length === 2 && cardValue(bjPlayerHand) === 21;
-            const multiplier = isBlackjack ? 2.5 : 2;
-            const winAmount = Math.floor(bjBetAmount * multiplier * effectiveMultiplier);
+            const winAmount = Math.floor(bjBetAmount * baseMultiplier);
             updateBalance(userBalance + winAmount);
             playCashoutSound();
             totalWins++;
