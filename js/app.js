@@ -2,6 +2,9 @@
 const audioBet = new Audio('sounds/bet.mp3');
 const audioCashout = new Audio('sounds/cashout.mp3');
 
+// Fallback for games still checking this (always normal)
+window.serverMode = 'normal';
+
 function playBetSound() {
     audioBet.currentTime = 0;
     audioBet.play().catch(e => console.warn("Sound blocked:", e));
@@ -18,21 +21,16 @@ function playCashoutSound() {
 
 // Navigation - SPA page routing
 function navigateTo(page) {
-    // Hide all pages
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-
-    // Show target page
     const target = document.getElementById('page-' + page);
     if (target) {
         target.style.display = 'block';
     } else {
-        // Fallback to home
         const home = document.getElementById('page-home');
         if (home) home.style.display = 'block';
         return;
     }
 
-    // Update active sidebar item
     document.querySelectorAll('.game-item').forEach(item => item.classList.remove('active'));
     const gameItems = document.querySelectorAll('.game-item');
     gameItems.forEach(item => {
@@ -42,38 +40,17 @@ function navigateTo(page) {
         }
     });
 
-    // Page-specific initialization
     switch (page) {
-        case 'profile':
-            if (typeof loadProfilePage === 'function') loadProfilePage();
-            break;
-        case 'forum':
-            if (typeof loadForumPosts === 'function') loadForumPosts();
-            break;
-        case 'admin':
-            if (typeof loadAdminUsers === 'function') loadAdminUsers();
-            break;
-        case 'roulette':
-            if (typeof initRouletteWheel === 'function') initRouletteWheel();
-            break;
-        case 'keno':
-            if (typeof initKenoGrid === 'function') initKenoGrid();
-            break;
-        case 'wheel':
-            if (typeof initWheelCanvas === 'function') initWheelCanvas();
-            break;
-        case 'home':
-            loadHomeStats();
-            break;
-        case 'leaderboard':
-            if (typeof loadLeaderboard === 'function') loadLeaderboard();
-            break;
-        case 'shop':
-            if (typeof renderShop === 'function') renderShop();
-            break;
+        case 'profile': if (typeof loadProfilePage === 'function') loadProfilePage(); break;
+        case 'forum': if (typeof loadForumPosts === 'function') loadForumPosts(); break;
+        case 'admin': if (typeof loadAdminUsers === 'function') loadAdminUsers(); break;
+        case 'roulette': if (typeof initRouletteWheel === 'function') initRouletteWheel(); break;
+        case 'keno': if (typeof initKenoGrid === 'function') initKenoGrid(); break;
+        case 'wheel': if (typeof initWheelCanvas === 'function') initWheelCanvas(); break;
+        case 'home': loadHomeStats(); break;
+        case 'leaderboard': if (typeof loadLeaderboard === 'function') loadLeaderboard(); break;
+        case 'shop': if (typeof renderShop === 'function') renderShop(); break;
     }
-
-    // Scroll to top
     window.scrollTo(0, 0);
 }
 
@@ -83,7 +60,6 @@ function showModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'flex';
-        // Focus first input in modal
         setTimeout(() => {
             const input = modal.querySelector('input');
             if (input) input.focus();
@@ -98,9 +74,7 @@ function hideModal(modalId) {
     }
 }
 
-// Modal Closing Logic (mousedown/mouseup check)
 let modalMouseDownTarget = null;
-
 document.addEventListener('mousedown', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
         modalMouseDownTarget = e.target;
@@ -108,7 +82,6 @@ document.addEventListener('mousedown', (e) => {
         modalMouseDownTarget = null;
     }
 });
-
 document.addEventListener('mouseup', (e) => {
     if (e.target.classList.contains('modal-overlay') && modalMouseDownTarget === e.target) {
         e.target.style.display = 'none';
@@ -123,8 +96,6 @@ function showToast(message, type = 'info') {
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-
-    // Icon SVGs for each type
     const icons = {
         success: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M20 6L9 17l-5-5" stroke="#00d26a" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         error: '<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="10" stroke="#ff4757" fill="none" stroke-width="2"/><line x1="15" y1="9" x2="9" y2="15" stroke="#ff4757" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="#ff4757" stroke-width="2"/></svg>',
@@ -141,11 +112,7 @@ function showToast(message, type = 'info') {
     `;
 
     container.appendChild(toast);
-
-    requestAnimationFrame(() => {
-        toast.classList.add('toast-show');
-    });
-
+    requestAnimationFrame(() => { toast.classList.add('toast-show'); });
     setTimeout(() => {
         toast.classList.add('toast-hide');
         setTimeout(() => toast.remove(), 300);
@@ -164,79 +131,55 @@ async function loadHomeStats() {
         } else {
             el.textContent = '0';
         }
-    } catch (e) {
-        el.textContent = '0';
-    }
+    } catch (e) { el.textContent = '0'; }
 }
 
-// Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         document.querySelectorAll('.modal-overlay').forEach(m => {
-            if (m.style.display !== 'none') {
-                m.style.display = 'none';
-            }
+            if (m.style.display !== 'none') m.style.display = 'none';
         });
     }
 });
 
 // Initialize the application
 async function initApp() {
-    if (typeof initAuth === 'function') {
-        await initAuth();
-    }
+    if (typeof initAuth === 'function') await initAuth();
     navigateTo('home');
 }
 
-// STARTUP LISTENER FOR NOTIFICATIONS
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     
-    // Listen for events from the server (Gift/Balance Updates)
+    // SERVER EVENT LISTENERS
     if (typeof socket !== 'undefined') {
+        // 1. Gift Notification (Sent by Admin)
         socket.on('gift_notification', async (data) => {
-            // Check if this notification is for me
             if (currentUser && userProfile) {
+                // If targeted specifically OR if checking ID
                 if (userProfile.username === data.targetUsername || currentUser.id === data.targetId) {
                     playCashoutSound();
                     
-                    // Create formatting for the Owner Tag
-                    const ownerTagHTML = '<span class="rank-tag rank-owner" style="margin:0 4px; vertical-align: baseline;">OWNER</span>';
+                    const amount = data.amount;
+                    let msg = "";
                     
-                    let message = '';
+                    const ownerTag = '<span class="rank-tag rank-owner" style="margin:0 4px; vertical-align: baseline;">OWNER</span>';
                     
-                    // Logic to display message based on action
-                    if (data.type === 'set_balance') {
-                        message = `Your balance was updated to ${data.amount} by ${ownerTagHTML} Astraphobia`;
+                    if (amount > 0) {
+                        msg = `Received ${amount} Astraphobia from ${ownerTag} Astraphobia`;
                     } else {
-                        // Default "gift" message
-                        message = `You received ${data.amount} coins from ${ownerTagHTML} Astraphobia`;
+                        // Handle adjustments where money is taken (just in case)
+                        msg = `Balance adjusted by ${amount} by ${ownerTag}`;
                     }
+
+                    showToast(msg, 'success');
                     
-                    // Display Toast with HTML content
-                    const container = document.getElementById('toastContainer');
-                    if (container) {
-                        const toast = document.createElement('div');
-                        toast.className = `toast toast-success`;
-                        toast.innerHTML = `
-                            <div class="toast-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M20 6L9 17l-5-5" stroke="#00d26a" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                            <span class="toast-message">${message}</span>
-                            <button class="toast-close" onclick="this.parentElement.remove()"><svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button>
-                        `;
-                        container.appendChild(toast);
-                        requestAnimationFrame(() => toast.classList.add('toast-show'));
-                        setTimeout(() => { toast.classList.add('toast-hide'); setTimeout(() => toast.remove(), 300); }, 4000);
-                    }
-                    
-                    // Refresh balance immediately via DB fetch
-                    if (typeof loadProfile === 'function') {
-                        await loadProfile();
-                    }
+                    if (typeof loadProfile === 'function') await loadProfile();
                 }
             }
         });
-
-        // Listen for global announcements (Admin only)
+        
+        // 3. Global Announcements
         socket.on('global_announcement', (data) => {
              if (typeof showAnnouncementBanner === 'function') {
                  showAnnouncementBanner(data.text);
