@@ -98,7 +98,8 @@ function hideModal(modalId) {
 }
 
 // Close modal when clicking overlay background
-document.addEventListener('click', (e) => {
+// Changed to 'mousedown' so highlighting text and dragging outside doesn't close the UI
+document.addEventListener('mousedown', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
         e.target.style.display = 'none';
     }
@@ -185,3 +186,4 @@ async function initApp() {
 
 // Start app when DOM is ready
 document.addEventListener('DOMContentLoaded', initApp);
+
