@@ -2,6 +2,9 @@
 const audioBet = new Audio('sounds/bet.mp3');
 const audioCashout = new Audio('sounds/cashout.mp3');
 
+// Initialize Global Server Mode (Normal by default)
+window.serverMode = 'normal';
+
 function playBetSound() {
     audioBet.currentTime = 0;
     audioBet.play().catch(e => console.warn("Sound blocked:", e));
@@ -77,7 +80,7 @@ function navigateTo(page) {
     window.scrollTo(0, 0);
 }
 
-// --- MODAL CONTROLS (FIXED) ---
+// --- MODAL CONTROLS ---
 
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -98,9 +101,7 @@ function hideModal(modalId) {
     }
 }
 
-// FIX: Improved Modal Closing Logic
-// We track where the mouse goes down. We only close if it started AND ended on the overlay.
-// This prevents closing when dragging/highlighting text from inside the modal to the outside.
+// Modal Closing Logic (mousedown/mouseup check)
 let modalMouseDownTarget = null;
 
 document.addEventListener('mousedown', (e) => {
@@ -144,12 +145,10 @@ function showToast(message, type = 'info') {
 
     container.appendChild(toast);
 
-    // Trigger slide-in animation
     requestAnimationFrame(() => {
         toast.classList.add('toast-show');
     });
 
-    // Auto-remove after 3 seconds
     setTimeout(() => {
         toast.classList.add('toast-hide');
         setTimeout(() => toast.remove(), 300);
@@ -163,7 +162,6 @@ async function loadHomeStats() {
     try {
         const profiles = await supabase.select('profiles', 'id,username');
         if (profiles && Array.isArray(profiles)) {
-            // Only count profiles with actual usernames
             const realUsers = profiles.filter(p => p.username && p.username.length >= 3);
             el.textContent = realUsers.length;
         } else {
@@ -176,7 +174,6 @@ async function loadHomeStats() {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-    // Escape closes modals
     if (e.key === 'Escape') {
         document.querySelectorAll('.modal-overlay').forEach(m => {
             if (m.style.display !== 'none') {
@@ -188,32 +185,32 @@ document.addEventListener('keydown', (e) => {
 
 // Initialize the application
 async function initApp() {
-    // Initialize auth (check for existing session)
     if (typeof initAuth === 'function') {
         await initAuth();
     }
-
-    // Show home page by default
     navigateTo('home');
 }
 
-// Start app when DOM is ready and setup Listeners
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     
-    // Listen for events from the server
+    // SERVER EVENT LISTENERS
     if (typeof socket !== 'undefined') {
         
         // 1. Gift Notification (Sent by Admin)
         socket.on('gift_notification', async (data) => {
             // Check if this notification is for me
-            // data structure: { targetUsername, targetId, amount }
             if (currentUser && userProfile) {
                 if (userProfile.username === data.targetUsername || currentUser.id === data.targetId) {
                     playCashoutSound();
-                    showToast(`You received ${data.amount} Astraphobia from OWNER!`, 'success');
                     
-                    // Refresh balance immediately by reloading profile
+                    // Format message with OWNER TAG
+                    const ownerTagHTML = '<span class="rank-tag rank-owner" style="margin:0 4px; vertical-align: baseline;">OWNER</span>';
+                    const message = `You received ${data.amount} Astraphobia from ${ownerTagHTML}`;
+                    
+                    showToast(message, 'success');
+                    
+                    // Refresh balance
                     if (typeof loadProfile === 'function') {
                         await loadProfile();
                     }
@@ -221,31 +218,36 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // 2. Betting Freeze Updates (Sent by Admin)
+        // 2. Betting Freeze Updates
         socket.on('admin_mode_update', (data) => {
-            // data.mode is 'freeze_bets' or 'normal'
-            if (typeof window.setTrollMode !== 'undefined') {
-                // Update the global state variable manually
-                window.serverMode = data.mode; 
-                
-                // Update UI text if present
-                const modeEl = document.getElementById('adminCurrentMode');
-                if (modeEl) {
-                    const label = data.mode === 'freeze_bets' ? '❄️ BETS FROZEN' : 'NORMAL';
-                    modeEl.textContent = label;
-                }
-
-                // Update Admin Button visual state
-                if (typeof updateAdminButtons === 'function') {
-                    updateAdminButtons();
-                }
-                
-                if (data.mode === 'freeze_bets') {
-                    showToast('❄️ Betting has been frozen by an admin.', 'warning');
-                } else {
-                    showToast('✅ Betting is now enabled.', 'success');
-                }
+            // Update global state
+            window.serverMode = data.mode; 
+            
+            // Update Admin UI Label if visible
+            const modeEl = document.getElementById('adminCurrentMode');
+            if (modeEl) {
+                const label = data.mode === 'freeze_bets' ? '❄️ BETS FROZEN' : 'NORMAL';
+                modeEl.textContent = label;
             }
+
+            // Update Admin Buttons
+            if (typeof updateAdminButtons === 'function') {
+                updateAdminButtons();
+            }
+            
+            // Show toast to user
+            if (data.mode === 'freeze_bets') {
+                showToast('❄️ Betting has been frozen by an admin.', 'warning');
+            } else {
+                showToast('✅ Betting is now enabled.', 'success');
+            }
+        });
+
+        // 3. Global Announcements (Used for Chat Lock)
+        socket.on('global_announcement', (data) => {
+             if (typeof showAnnouncementBanner === 'function') {
+                 showAnnouncementBanner(data.text);
+             }
         });
     }
 });
