@@ -1,8 +1,7 @@
-// Vault System with Passive Income (2% online, 1% offline)
+// Vault System with Passive Income (0.5% online only, NO offline earnings)
 let vaultBalance = 0;
 let vaultPassiveInterval = null;
 let vaultLastActive = null;
-let vaultOfflineEarningsShown = false;
 let vaultSaveThrottle = 0;
 
 function getVaultBalance() {
@@ -18,32 +17,7 @@ async function initVault() {
     vaultBalance = getVaultBalance();
     vaultLastActive = userProfile.last_active ? new Date(userProfile.last_active) : new Date();
     
-    const now = new Date();
-    const offlineSeconds = Math.floor((now - vaultLastActive) / 1000);
-    
-    if (offlineSeconds > 5 && vaultBalance > 0 && !vaultOfflineEarningsShown) {
-        const offlineRate = 0.01;
-        const maxOfflineSeconds = 3600;
-        const cappedSeconds = Math.min(offlineSeconds, maxOfflineSeconds);
-        const cappedEarnings = Math.floor(vaultBalance * offlineRate * cappedSeconds);
-        
-        if (cappedEarnings > 0) {
-            userBalance += cappedEarnings;
-            userBalance = Math.min(userBalance, Number.MAX_SAFE_INTEGER);
-            updateBalanceDisplay();
-            
-            localStorage.setItem('astrarise_offline_earnings', cappedEarnings.toString());
-            localStorage.setItem('astrarise_offline_seconds', cappedSeconds.toString());
-            
-            try {
-                await supabase.update('profiles',
-                    { high_score: userBalance, last_active: new Date().toISOString() },
-                    `id=eq.${currentUser.id}`
-                );
-            } catch(e) {}
-        }
-        vaultOfflineEarningsShown = true;
-    }
+    // NO offline earnings - vault earns nothing while offline
     
     try {
         await supabase.update('profiles', 
@@ -62,7 +36,8 @@ function startVaultPassiveIncome() {
     vaultPassiveInterval = setInterval(async () => {
         if (!currentUser || vaultBalance <= 0) return;
         
-        const onlineRate = 0.02;
+        // 0.5% per second while online
+        const onlineRate = 0.005;
         const earnings = Math.floor(vaultBalance * onlineRate);
         
         if (earnings > 0) {
@@ -99,8 +74,8 @@ function updateVaultDisplay() {
     
     const rateDisplay = document.getElementById('vaultPassiveRate');
     if (rateDisplay) {
-        const perSec = Math.floor(vaultBalance * 0.02);
-        rateDisplay.textContent = `+${perSec.toLocaleString()}/sec (online)`;
+        const perSec = Math.floor(vaultBalance * 0.005);
+        rateDisplay.textContent = `+${perSec.toLocaleString()}/sec (online only)`;
     }
     
     const btnText = document.getElementById('vaultBtnText');
@@ -108,14 +83,9 @@ function updateVaultDisplay() {
         btnText.textContent = vaultBalance > 0 ? `Vault (${abbreviateNumber(vaultBalance)})` : 'Vault';
     }
     
-    const offlineEarnings = localStorage.getItem('astrarise_offline_earnings');
+    // Hide offline earnings display since we no longer have offline earnings
     const offlineDiv = document.getElementById('vaultOfflineEarnings');
-    const offlineAmountEl = document.getElementById('vaultOfflineAmount');
-    
-    if (offlineEarnings && parseInt(offlineEarnings) > 0 && offlineDiv) {
-        offlineDiv.style.display = 'flex';
-        if (offlineAmountEl) offlineAmountEl.textContent = '+' + parseInt(offlineEarnings).toLocaleString() + ' Astraphobia';
-    }
+    if (offlineDiv) offlineDiv.style.display = 'none';
 }
 
 function abbreviateNumber(n) {
@@ -160,11 +130,6 @@ async function withdrawFromVault() {
     updateVaultDisplay();
     
     await saveVaultAndBalance();
-    
-    localStorage.removeItem('astrarise_offline_earnings');
-    localStorage.removeItem('astrarise_offline_seconds');
-    const offlineDiv = document.getElementById('vaultOfflineEarnings');
-    if (offlineDiv) offlineDiv.style.display = 'none';
     
     showToast(`Withdrew ${amount.toLocaleString()} from Vault!`, 'success');
 }
