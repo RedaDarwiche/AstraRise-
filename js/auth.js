@@ -33,13 +33,17 @@ async function login() {
     try {
         const data = await supabase.signIn(email, password);
         currentUser = data.user;
+        
+        // Final fallback incase the payload didn't assign the user correctly
+        if (!currentUser) currentUser = await supabase.getUser();
+
         try {
             await loadProfile();
         } catch (profileErr) {
             console.error('Profile load after login:', profileErr);
-            // Still show logged-in UI even if profile fetch fails
             userBalance = 0;
         }
+        
         updateAuthUI(true);
         hideModal('loginModal');
         showToast('Welcome back!', 'success');
@@ -70,22 +74,23 @@ async function signup() {
     }
 
     try {
-        const data = await supabase.signUp(email, password);
+        let data = await supabase.signUp(email, password);
 
-        // Try to sign in immediately after signup
-        try {
-            const loginData = await supabase.signIn(email, password);
-            currentUser = loginData.user;
-        } catch (loginErr) {
-            // If auto-login fails, the user might need to confirm email
-            if (data.user) {
-                currentUser = data.user;
-            } else {
-                showToast('Account created! Please check your email or try logging in.', 'info');
+        // If we didn't receive a token, sign in explicitly (Required for environments testing auto-login limits)
+        if (!supabase.accessToken) {
+            try {
+                const loginData = await supabase.signIn(email, password);
+                data = loginData;
+            } catch (loginErr) {
+                // Fails here usually because email confirmation is required by your Supabase backend settings
+                showToast('Account created! Please check your email to verify or try logging in.', 'info');
                 hideModal('signupModal');
-                return;
+                return; // Stop right here! Prevent entering a ghost session
             }
         }
+
+        currentUser = data.user;
+        if (!currentUser) currentUser = await supabase.getUser();
 
         // Create profile
         if (currentUser && currentUser.id) {
