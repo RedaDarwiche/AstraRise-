@@ -1,6 +1,14 @@
 // Admin Panel Logic
-let globalMultiplierValue = 1.0;
-let serverMode = 'normal'; // 'normal' or 'freeze_bets'
+window.globalMultiplierValue = 1.0;
+window.serverMode = 'normal'; 
+
+window.applyServerMode = function(mode) {
+    window.serverMode = mode;
+    const label = mode === 'freeze_bets' ? '❄️ BETS FROZEN' : 'NORMAL';
+    const modeEl = document.getElementById('adminCurrentMode');
+    if (modeEl) modeEl.textContent = label;
+    updateAdminButtons();
+};
 
 function toggleAdminPanel() {
     if (!isOwner()) return;
@@ -8,13 +16,12 @@ function toggleAdminPanel() {
     if (panel.style.display === 'none') {
         panel.style.display = 'flex';
         loadAdminUsers();
-        // Reset position if needed or keep saved
     } else {
         panel.style.display = 'none';
     }
 }
 
-// --- DRAG LOGIC (Keep this as is) ---
+// --- DRAG LOGIC ---
 const adminPanelDragState = { xOffset: 0, yOffset: 0 };
 document.addEventListener('DOMContentLoaded', () => {
     const adminPanel = document.getElementById('draggableAdminPanel');
@@ -31,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('mouseup', () => isDragging = false);
-
     document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
         e.preventDefault();
@@ -43,93 +49,78 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- CORE ADMIN FUNCTIONS ---
-
 function isOwner() {
-    // Basic check - redundant if backend is secure, but good for UI hiding
-    return currentUser && currentUser.email === 'redadarwichepaypal@gmail.com'; // Update your email here if needed
+    return currentUser && currentUser.email === 'redadarwichepaypal@gmail.com'; 
 }
 
 function getTrollMode() {
-    return serverMode;
+    return window.serverMode;
 }
 
 function getGlobalMultiplier() {
-    return globalMultiplierValue;
+    return window.globalMultiplierValue;
 }
 
-// 1. FREEZE BETS LOGIC
 function setTrollMode(mode) {
     if (!isOwner()) return;
 
-    if (serverMode === mode) {
-        // Toggle off
-        serverMode = 'normal';
-        document.getElementById('adminCurrentMode').textContent = 'NORMAL';
+    if (window.serverMode === mode) {
+        window.applyServerMode('normal');
         showToast('Server mode: Normal', 'info');
+        if (typeof socket !== 'undefined' && socket.connected) {
+            socket.emit('global_announcement', { text: '✅ Betting has resumed.' });
+        }
     } else {
-        // Toggle on
-        serverMode = mode;
-        const label = mode === 'freeze_bets' ? '❄️ BETS FROZEN' : 'NORMAL';
-        document.getElementById('adminCurrentMode').textContent = label;
-        
+        window.applyServerMode(mode);
         if (mode === 'freeze_bets') {
             showToast('❄️ All betting has been frozen!', 'error');
-            // Optional: Announce it to everyone
-            if (socket && socket.connected) socket.emit('global_announcement', { text: '❄️ Betting is temporarily frozen for maintenance.' });
+            if (typeof socket !== 'undefined' && socket.connected) {
+                socket.emit('global_announcement', { text: '❄️ Betting is temporarily frozen for maintenance.' });
+            }
         }
     }
-    updateAdminButtons();
 }
 
 function updateAdminButtons() {
     document.querySelectorAll('.troll-btn').forEach(btn => {
         btn.classList.remove('troll-active');
         const onclick = btn.getAttribute('onclick');
-        if (onclick && onclick.includes(`'${serverMode}'`)) {
+        if (onclick && onclick.includes(`'${window.serverMode}'`)) {
             btn.classList.add('troll-active');
         }
     });
 }
 
-// 2. CHECK IF BETS ARE ALLOWED
-// This replaces the old "handleTrollResult" with a clean check
 function handleTrollResult(originalWin, originalMultiplier, betAmount) {
-    // If bets are frozen, we shouldn't have reached here usually, 
-    // but as a failsafe:
-    if (serverMode === 'freeze_bets') {
+    if (window.serverMode === 'freeze_bets') {
+        // Automatically refund the user because the game already took their bet
+        if (typeof updateBalance === 'function' && typeof userBalance !== 'undefined') {
+            updateBalance(userBalance + betAmount);
+        }
+        showToast('❄️ Betting is currently frozen! Your bet was refunded.', 'warning');
         return { win: false, multiplier: 0, frozen: true };
     }
-
-    // Normal game logic
-    return { 
-        win: originalWin, 
-        multiplier: originalMultiplier * globalMultiplierValue, 
-        frozen: false 
-    };
+    return { win: originalWin, multiplier: originalMultiplier * window.globalMultiplierValue, frozen: false };
 }
 
-// 3. GLOBAL CHAT MUTE
 function toggleGlobalMute() {
     if (!isOwner()) return;
-    if (socket && socket.connected) {
+    if (typeof socket !== 'undefined' && socket.connected) {
         socket.emit('admin_command', { command: 'toggle_mute' });
         showToast('Toggled Global Chat Mute', 'warning');
     }
 }
 
-// 4. CLEAR CHAT
 function clearGlobalChat() {
     if (!isOwner()) return;
     if(confirm("Are you sure you want to delete all chat history for everyone?")) {
-        if (socket && socket.connected) {
+        if (typeof socket !== 'undefined' && socket.connected) {
             socket.emit('admin_command', { command: 'clear_chat' });
             showToast('Chat history cleared', 'success');
         }
     }
 }
 
-// 5. ANNOUNCEMENTS
 function sendAnnouncement() {
     if (!isOwner()) return;
     const input = document.getElementById('announcementInput');
@@ -142,38 +133,55 @@ function sendAnnouncement() {
     input.value = '';
 }
 
-// 6. GLOBAL MULTIPLIER
 function setGlobalMultiplier() {
     if (!isOwner()) return;
     const val = parseFloat(document.getElementById('globalMultiplier').value);
     if (val >= 0.1 && val <= 1000) {
-        globalMultiplierValue = val;
+        window.globalMultiplierValue = val;
         showToast(`Global multiplier set to ${val}x`, 'info');
     }
 }
 
-// 7. USER MANAGEMENT (Load/Update Balances)
 async function loadAdminUsers() {
     if (!isOwner()) return;
+    const container = document.getElementById('adminUsersList');
+    container.innerHTML = '<div class="loading">Loading users...</div>';
+    
     try {
         const profiles = await supabase.select('profiles', '*', '', 'username.asc');
-        const container = document.getElementById('adminUsersList');
+        
         if (!profiles || profiles.length === 0) {
-            container.innerHTML = '<div class="loading">No users found</div>';
+            container.innerHTML = `
+                <div class="loading" style="color:var(--warning)">
+                    No users found, or blocked by Database security.<br><br>
+                    <small>Make sure you run the Admin SQL fix in Supabase!</small>
+                </div>`;
             return;
         }
+        
         document.getElementById('adminTotalUsers').textContent = profiles.length;
+        
+        // Calculate the total coins dynamically
+        const totalCoins = profiles.reduce((sum, p) => sum + (p.high_score || 0), 0);
+        const totalCoinsEl = document.getElementById('adminTotalCoins');
+        if (totalCoinsEl) totalCoinsEl.textContent = totalCoins.toLocaleString();
         
         container.innerHTML = profiles.map(p => `
             <div class="admin-user-item">
-                <span>${escapeHtml(p.username || 'Unknown')}</span>
+                <span>${(p.username || 'Unknown').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
                 <div class="admin-user-balance">
                     <input type="number" value="${p.high_score || 0}" id="balance_${p.id}">
                     <button class="btn btn-sm btn-primary" onclick="updateUserBalance('${p.id}')">Set</button>
                 </div>
             </div>
         `).join('');
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error(e); 
+        container.innerHTML = `
+            <div class="loading" style="color:var(--danger)">
+                Failed to load users.<br><small>Error: ${e.message}<br><br>Run the SQL fix in your Supabase dashboard.</small>
+            </div>`;
+    }
 }
 
 async function updateUserBalance(userId) {
@@ -183,10 +191,16 @@ async function updateUserBalance(userId) {
     try {
         await supabase.update('profiles', { high_score: newBalance }, `id=eq.${userId}`);
         showToast('Balance updated!', 'success');
+        
+        // Update the total coins text automatically
+        const oldTotalText = document.getElementById('adminTotalCoins').textContent.replace(/,/g, '');
+        const difference = newBalance - parseInt(input.defaultValue);
+        document.getElementById('adminTotalCoins').textContent = (parseInt(oldTotalText) + difference).toLocaleString();
+        input.defaultValue = newBalance; // Update default so it tracks correctly
+        
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
-// 8. SEND COINS (By Username)
 async function giveCoinsToUser() {
     if (!isOwner()) return;
     const username = document.getElementById('giveCoinsUsername').value.trim();
