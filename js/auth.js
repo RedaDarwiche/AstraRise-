@@ -213,6 +213,7 @@ async function loadProfile() {
 }
 
 async function updateBalance(newBalance) {
+    lastBalanceUpdateLocal = Date.now(); // <--- ADD THIS LINE
     userBalance = Math.max(0, Math.round(newBalance));
     updateBalanceDisplay();
     if (currentUser) {
@@ -296,4 +297,5 @@ function checkAndShowOwnerBtn() {
 // Run the owner check after a delay too, in case auth is slow
 setTimeout(checkAndShowOwnerBtn, 2000);
 setTimeout(checkAndShowOwnerBtn, 5000);
+
 
