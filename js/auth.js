@@ -4,6 +4,7 @@ let userProfile = null;
 let userBalance = 0;
 let totalWins = 0;
 let totalWagered = 0;
+let lastBalanceUpdateLocal = 0; // <--- ADD THIS LINE
 
 async function initAuth() {
     try {
@@ -295,3 +296,4 @@ function checkAndShowOwnerBtn() {
 // Run the owner check after a delay too, in case auth is slow
 setTimeout(checkAndShowOwnerBtn, 2000);
 setTimeout(checkAndShowOwnerBtn, 5000);
+
