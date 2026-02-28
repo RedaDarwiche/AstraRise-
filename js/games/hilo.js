@@ -32,20 +32,13 @@ function renderHiloCard(card) {
     el.className = 'hilo-card' + (isRed ? ' red' : '');
     el.textContent = hiloCardName(card);
 
-    // Trigger animation
     el.classList.remove('card-enter');
-    void el.offsetWidth; // Force reflow
+    void el.offsetWidth;
     el.classList.add('card-enter');
 }
 
 function startHilo() {
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
-
-    // FREEZE CHECK
-    if (window.serverMode === 'freeze_bets') {
-        showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
-        return;
-    }
 
     const bet = parseInt(document.getElementById('hiloBet').value);
     if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
@@ -71,7 +64,6 @@ function startHilo() {
 function hiloGuess(guess) {
     if (!hiloGameActive) return;
 
-    const trollMode = getTrollMode();
     let nextCard = hiloDeck.pop();
 
     if (!nextCard) {
@@ -86,22 +78,17 @@ function hiloGuess(guess) {
         correct = nextCard.value <= hiloCurrentCard.value;
     }
 
-    // Apply troll logic
     const tResult = handleTrollResult(correct, hiloMultiplier * 1.5, hiloBetAmount);
-    if (tResult.frozen) return;
-
     correct = tResult.win;
 
-    // Force card to match troll outcome if needed
+    // Adjust card to match forced outcome
     if (correct && ((guess === 'higher' && nextCard.value < hiloCurrentCard.value) || (guess === 'lower' && nextCard.value > hiloCurrentCard.value))) {
-        // We need a winning card, but drew a losing one
         const validCards = hiloDeck.filter(c => guess === 'higher' ? c.value >= hiloCurrentCard.value : c.value <= hiloCurrentCard.value);
         if (validCards.length > 0) {
             nextCard = validCards[0];
             hiloDeck = hiloDeck.filter(c => c !== nextCard);
         }
     } else if (!correct && ((guess === 'higher' && nextCard.value >= hiloCurrentCard.value) || (guess === 'lower' && nextCard.value <= hiloCurrentCard.value))) {
-        // We need a losing card, but drew a winning one
         const invalidCards = hiloDeck.filter(c => guess === 'higher' ? c.value < hiloCurrentCard.value : c.value > hiloCurrentCard.value);
         if (invalidCards.length > 0) {
             nextCard = invalidCards[0];
