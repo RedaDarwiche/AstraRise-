@@ -77,7 +77,8 @@ function navigateTo(page) {
     window.scrollTo(0, 0);
 }
 
-// Modal controls
+// --- MODAL CONTROLS (FIXED) ---
+
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -97,11 +98,24 @@ function hideModal(modalId) {
     }
 }
 
-// Close modal when clicking overlay background
-document.addEventListener('click', (e) => {
+// FIX: Improved Modal Closing Logic
+// We track where the mouse goes down. We only close if it started AND ended on the overlay.
+// This prevents closing when dragging/highlighting text from inside the modal to the outside.
+let modalMouseDownTarget = null;
+
+document.addEventListener('mousedown', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
+        modalMouseDownTarget = e.target;
+    } else {
+        modalMouseDownTarget = null;
+    }
+});
+
+document.addEventListener('mouseup', (e) => {
+    if (e.target.classList.contains('modal-overlay') && modalMouseDownTarget === e.target) {
         e.target.style.display = 'none';
     }
+    modalMouseDownTarget = null;
 });
 
 // Toast notification system
@@ -183,5 +197,55 @@ async function initApp() {
     navigateTo('home');
 }
 
-// Start app when DOM is ready
-document.addEventListener('DOMContentLoaded', initApp);
+// Start app when DOM is ready and setup Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    initApp();
+    
+    // Listen for events from the server
+    if (typeof socket !== 'undefined') {
+        
+        // 1. Gift Notification (Sent by Admin)
+        socket.on('gift_notification', async (data) => {
+            // Check if this notification is for me
+            // data structure: { targetUsername, targetId, amount }
+            if (currentUser && userProfile) {
+                if (userProfile.username === data.targetUsername || currentUser.id === data.targetId) {
+                    playCashoutSound();
+                    showToast(`You received ${data.amount} Astraphobia from OWNER!`, 'success');
+                    
+                    // Refresh balance immediately by reloading profile
+                    if (typeof loadProfile === 'function') {
+                        await loadProfile();
+                    }
+                }
+            }
+        });
+        
+        // 2. Betting Freeze Updates (Sent by Admin)
+        socket.on('admin_mode_update', (data) => {
+            // data.mode is 'freeze_bets' or 'normal'
+            if (typeof window.setTrollMode !== 'undefined') {
+                // Update the global state variable manually
+                window.serverMode = data.mode; 
+                
+                // Update UI text if present
+                const modeEl = document.getElementById('adminCurrentMode');
+                if (modeEl) {
+                    const label = data.mode === 'freeze_bets' ? '❄️ BETS FROZEN' : 'NORMAL';
+                    modeEl.textContent = label;
+                }
+
+                // Update Admin Button visual state
+                if (typeof updateAdminButtons === 'function') {
+                    updateAdminButtons();
+                }
+                
+                if (data.mode === 'freeze_bets') {
+                    showToast('❄️ Betting has been frozen by an admin.', 'warning');
+                } else {
+                    showToast('✅ Betting is now enabled.', 'success');
+                }
+            }
+        });
+    }
+});
