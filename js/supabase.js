@@ -15,7 +15,6 @@ class SupabaseClient {
         const h = {
             'Content-Type': 'application/json',
             'apikey': this.key,
-            // Fall back to anon key if access token is missing
             'Authorization': `Bearer ${this.accessToken || this.key}`
         };
         return h;
@@ -28,14 +27,18 @@ class SupabaseClient {
             body: JSON.stringify({ email, password, options: { data: {} } })
         });
         const data = await res.json();
-        if (data.error) throw new Error(data.error.message || data.msg || 'Signup failed');
+        
+        // BULLETPROOF ERROR CHECK
+        if (!res.ok || data.error) {
+            const errMsg = data.error_description || data.message || data.msg || (data.error && data.error.message) || 'Signup failed';
+            throw new Error(errMsg);
+        }
         
         if (data.access_token) {
             this.accessToken = data.access_token;
             localStorage.setItem('sb_access_token', data.access_token);
             if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
             
-            // Guarantee user object exists
             if (!data.user) {
                 const uRes = await fetch(`${this.url}/auth/v1/user`, {
                     headers: { 'Authorization': `Bearer ${data.access_token}`, 'apikey': this.key }
@@ -56,14 +59,18 @@ class SupabaseClient {
             body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        if (data.error) throw new Error(data.error.message || data.error_description || 'Login failed');
+        
+        // BULLETPROOF ERROR CHECK - Stops fake logins dead in their tracks
+        if (!res.ok || data.error) {
+            const errMsg = data.error_description || data.message || data.msg || (data.error && data.error.message) || 'Invalid login credentials';
+            throw new Error(errMsg);
+        }
         
         if (data.access_token) {
             this.accessToken = data.access_token;
             localStorage.setItem('sb_access_token', data.access_token);
             if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
             
-            // Guarantee user object exists
             if (!data.user) {
                 const uRes = await fetch(`${this.url}/auth/v1/user`, {
                     headers: { 'Authorization': `Bearer ${data.access_token}`, 'apikey': this.key }
@@ -75,7 +82,6 @@ class SupabaseClient {
         return data;
     }
 
-    // Added a localOnly flag so we don't send 403 requests to the server if the token is already dead
     async signOut(localOnly = false) {
         if (!localOnly && this.accessToken) {
             await fetch(`${this.url}/auth/v1/logout`, {
@@ -101,15 +107,11 @@ class SupabaseClient {
             });
             
             if (!res.ok) {
-                // Token is likely expired, try refresh
                 const refreshed = await this.refreshToken();
                 if (!refreshed) {
-                    // Refresh failed. Nuke the tokens LOCALLY so we don't get 403 loops
                     await this.signOut(true); 
                     return null;
                 }
-                
-                // Refresh succeeded, fetch user again with the new token
                 const res2 = await fetch(`${this.url}/auth/v1/user`, {
                     headers: { 'Authorization': `Bearer ${this.accessToken}`, 'apikey': this.key }
                 });
@@ -120,7 +122,6 @@ class SupabaseClient {
             this.user = await res.json();
             return this.user;
         } catch(e) {
-            console.warn("Failed to fetch user:", e);
             return null;
         }
     }
@@ -135,7 +136,7 @@ class SupabaseClient {
                 body: JSON.stringify({ refresh_token: refreshToken })
             });
             
-            if (!res.ok) return false; // Fail fast on 400 errors
+            if (!res.ok) return false;
 
             const data = await res.json();
             if (data.access_token) {
@@ -152,9 +153,7 @@ class SupabaseClient {
                 this.user = data.user;
                 return true;
             }
-        } catch (e) {
-            console.warn("Token refresh failed");
-        }
+        } catch (e) {}
         return false;
     }
 
@@ -167,45 +166,18 @@ class SupabaseClient {
         let url = `${this.url}/rest/v1/${table}`;
         const headers = this.headers();
         
-        if (options.select) {
-            url += `?select=${options.select}`;
-        }
-        
-        if (options.filters) {
-            const sep = url.includes('?') ? '&' : '?';
-            url += sep + options.filters;
-        }
+        if (options.select) url += `?select=${options.select}`;
+        if (options.filters) url += (url.includes('?') ? '&' : '?') + options.filters;
+        if (options.order) url += (url.includes('?') ? '&' : '?') + `order=${options.order}`;
+        if (options.limit) url += (url.includes('?') ? '&' : '?') + `limit=${options.limit}`;
 
-        if (options.order) {
-            const sep = url.includes('?') ? '&' : '?';
-            url += sep + `order=${options.order}`;
-        }
-
-        if (options.limit) {
-            const sep = url.includes('?') ? '&' : '?';
-            url += sep + `limit=${options.limit}`;
-        }
-
-        if (options.single) {
-            headers['Accept'] = 'application/vnd.pgrst.object+json';
-        }
-
-        if (method === 'POST' && options.upsert) {
-            headers['Prefer'] = 'resolution=merge-duplicates';
-        }
-
-        if (method === 'PATCH' || method === 'DELETE') {
-            headers['Prefer'] = 'return=representation';
-        }
-
-        if (method === 'POST') {
-            headers['Prefer'] = headers['Prefer'] || 'return=representation';
-        }
+        if (options.single) headers['Accept'] = 'application/vnd.pgrst.object+json';
+        if (method === 'POST' && options.upsert) headers['Prefer'] = 'resolution=merge-duplicates';
+        if (method === 'PATCH' || method === 'DELETE') headers['Prefer'] = 'return=representation';
+        if (method === 'POST') headers['Prefer'] = headers['Prefer'] || 'return=representation';
 
         const fetchOptions = { method, headers };
-        if (options.body) {
-            fetchOptions.body = JSON.stringify(options.body);
-        }
+        if (options.body) fetchOptions.body = JSON.stringify(options.body);
 
         const res = await fetch(url, fetchOptions);
         
@@ -222,23 +194,18 @@ class SupabaseClient {
     async select(table, columns = '*', filters = '', order = '', limit = '') {
         return this.query(table, 'GET', { select: columns, filters, order, limit });
     }
-
     async insert(table, data) {
         return this.query(table, 'POST', { body: data, select: '*' });
     }
-
     async upsert(table, data) {
         return this.query(table, 'POST', { body: data, upsert: true, select: '*' });
     }
-
     async update(table, data, filters) {
         return this.query(table, 'PATCH', { body: data, filters, select: '*' });
     }
-
     async delete(table, filters) {
         return this.query(table, 'DELETE', { filters });
     }
-
     async selectSingle(table, columns = '*', filters = '') {
         return this.query(table, 'GET', { select: columns, filters, single: true });
     }
