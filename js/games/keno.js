@@ -64,12 +64,6 @@ async function playKeno() {
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
     if (kenoSelected.length === 0) { showToast('Select at least 1 number', 'error'); return; }
 
-    // FREEZE CHECK
-    if (window.serverMode === 'freeze_bets') {
-        showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
-        return;
-    }
-
     const bet = parseInt(document.getElementById('kenoBet').value);
     if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
     if (bet > userBalance) { showToast('Insufficient balance', 'error'); return; }
@@ -77,8 +71,6 @@ async function playKeno() {
     await updateBalance(userBalance - bet);
     totalWagered += bet;
     playBetSound();
-
-    const trollMode = getTrollMode();
 
     // Draw 10 numbers
     const allNumbers = Array.from({ length: 40 }, (_, i) => i + 1);
@@ -96,22 +88,20 @@ async function playKeno() {
     let baseMultiplier = payTable[baselineHits] || 0;
     let isWin = baseMultiplier > 0;
 
-    // Apply troll logic
+    // Apply global logic
     const tResult = handleTrollResult(isWin, baseMultiplier, bet);
-    if (tResult.frozen) return;
-
     isWin = tResult.win;
 
     // Force outcome
     if (isWin) {
-        // Need to guarantee a win, try to match the troll multiplier or just give a big win
-        kenoDrawn = [...kenoSelected];
-        while (kenoDrawn.length < 10) {
-            const r = Math.floor(Math.random() * 40) + 1;
-            if (!kenoDrawn.includes(r)) kenoDrawn.push(r);
+        // Guarantee at least one hit if win needed but didn't happen
+        if (!baselineHits && baseMultiplier > 0) {
+             kenoDrawn = [...kenoSelected.slice(0,1), ...baselineDrawn.slice(1)];
+        } else {
+             kenoDrawn = baselineDrawn;
         }
     } else {
-        // Force 0 hits
+        // Force 0 hits if supposed to lose
         kenoDrawn = allNumbers.filter(n => !kenoSelected.includes(n)).slice(0, 10);
     }
 
@@ -160,5 +150,4 @@ async function playKeno() {
     drawNext();
 }
 
-// Initialize
 initKenoGrid();
