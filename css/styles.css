@@ -2587,3 +2587,326 @@ a:hover {
     box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
     transform: scale(1.05);
 }
+/* ===== VAULT ===== */
+.vault-btn {
+    background: linear-gradient(135deg, #2d3436, #636e72);
+    border: 1px solid #ffa502;
+    color: #ffa502;
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85em;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.vault-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 165, 2, 0.3);
+}
+
+.vault-info-box {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.vault-balance-display {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.vault-label {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.vault-amount {
+    font-size: 2.2em;
+    font-weight: 800;
+    color: var(--warning);
+}
+
+.vault-passive-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 12px;
+}
+
+.vault-passive-rate {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.vault-passive-label {
+    font-size: 0.8em;
+    color: var(--text-muted);
+}
+
+.vault-offline-earnings {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(0, 210, 106, 0.1);
+    border: 1px solid rgba(0, 210, 106, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.vault-offline-amount {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.vault-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ===== ROULETTE VISUAL ===== */
+.roulette-visual {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.roulette-spin-area {
+    position: relative;
+    overflow: hidden;
+    height: 70px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    margin-bottom: 16px;
+    background: var(--bg-tertiary);
+}
+
+.roulette-pointer-arrow {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5em;
+    color: var(--warning);
+    z-index: 10;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.roulette-track {
+    display: flex;
+    gap: 4px;
+    padding: 10px 0;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0;
+    white-space: nowrap;
+}
+
+.roulette-num {
+    width: 60px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 1.2em;
+    flex-shrink: 0;
+}
+
+.roulette-num-red { background: #ff4757; color: white; }
+.roulette-num-black { background: #2d3436; color: white; border: 1px solid #555; }
+.roulette-num-green { background: #00b894; color: white; }
+
+.roulette-last-results {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.roulette-hist-item {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75em;
+    font-weight: 700;
+}
+
+.roulette-hist-red { background: #ff4757; color: white; }
+.roulette-hist-black { background: #2d3436; color: white; border: 1px solid #555; }
+.roulette-hist-green { background: #00b894; color: white; }
+
+/* ===== CASE BATTLE ===== */
+.case-battle-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-height: 300px;
+}
+
+.case-player-col {
+    flex: 1;
+    text-align: center;
+}
+
+.case-player-col h3 {
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+}
+
+.case-vs {
+    font-size: 2em;
+    font-weight: 800;
+    color: var(--accent-secondary);
+    padding: 0 10px;
+}
+
+.case-spin-reel {
+    height: 60px;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-tertiary);
+    margin-bottom: 12px;
+}
+
+.case-tag-item {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 16px;
+    font-weight: 700;
+    font-size: 0.95em;
+    border-radius: 6px;
+    margin: 0 4px;
+}
+
+.case-tag-val {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.case-tag-final {
+    border-width: 2px !important;
+}
+
+.case-final-tag {
+    display: inline-block;
+    padding: 8px 20px;
+    border: 2px solid;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.1em;
+}
+
+.case-result-tag {
+    min-height: 40px;
+}
+
+.case-battle-result {
+    text-align: center;
+    min-height: 40px;
+    font-size: 1.3em;
+    font-weight: 700;
+    margin-top: 16px;
+}
+
+.case-win { color: var(--success); }
+.case-lose { color: var(--danger); }
+
+/* ===== INVENTORY ===== */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.inventory-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.inventory-item:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.inventory-tag {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.95em;
+    margin-bottom: 8px;
+}
+
+.inventory-value {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-bottom: 8px;
+}
+
+.inventory-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* ===== DONATE ===== */
+.donate-notifications {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.donate-notif-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.donate-notif-item .donate-amount {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.donate-notif-item .donate-from {
+    color: var(--accent-secondary);
+    font-weight: 600;
+}
