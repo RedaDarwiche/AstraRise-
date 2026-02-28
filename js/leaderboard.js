@@ -1,4 +1,4 @@
-// Leaderboard
+// Leaderboard - Fixed for large numbers
 async function loadLeaderboard() {
     const list = document.getElementById('leaderboardList');
     if (!list) return;
@@ -13,7 +13,6 @@ async function loadLeaderboard() {
             return;
         }
 
-        // Show top 50 richest
         const top = profiles.slice(0, 50);
 
         let html = '';
@@ -34,7 +33,9 @@ async function loadLeaderboard() {
             }
 
             const username = p.username || 'Unknown';
-            const balance = (p.high_score || 0).toLocaleString();
+            // Use safeParseNumber for proper large number display
+            const balanceNum = safeParseNumber(p.high_score);
+            const balance = balanceNum.toLocaleString();
             const isCurrentUser = currentUser && p.id === currentUser.id;
 
             html += `
