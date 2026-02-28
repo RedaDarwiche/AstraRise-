@@ -2,9 +2,6 @@
 const audioBet = new Audio('sounds/bet.mp3');
 const audioCashout = new Audio('sounds/cashout.mp3');
 
-// Initialize Global Server Mode (Normal by default)
-window.serverMode = 'normal';
-
 function playBetSound() {
     audioBet.currentTime = 0;
     audioBet.play().catch(e => console.warn("Sound blocked:", e));
@@ -191,59 +188,55 @@ async function initApp() {
     navigateTo('home');
 }
 
+// STARTUP LISTENER FOR NOTIFICATIONS
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     
-    // SERVER EVENT LISTENERS
+    // Listen for events from the server (Gift/Balance Updates)
     if (typeof socket !== 'undefined') {
-        
-        // 1. Gift Notification (Sent by Admin)
         socket.on('gift_notification', async (data) => {
             // Check if this notification is for me
             if (currentUser && userProfile) {
                 if (userProfile.username === data.targetUsername || currentUser.id === data.targetId) {
                     playCashoutSound();
                     
-                    // Format message with OWNER TAG
+                    // Create formatting for the Owner Tag
                     const ownerTagHTML = '<span class="rank-tag rank-owner" style="margin:0 4px; vertical-align: baseline;">OWNER</span>';
-                    const message = `You received ${data.amount} Astraphobia from ${ownerTagHTML}`;
                     
-                    showToast(message, 'success');
+                    let message = '';
                     
-                    // Refresh balance
+                    // Logic to display message based on action
+                    if (data.type === 'set_balance') {
+                        message = `Your balance was updated to ${data.amount} by ${ownerTagHTML} Astraphobia`;
+                    } else {
+                        // Default "gift" message
+                        message = `You received ${data.amount} coins from ${ownerTagHTML} Astraphobia`;
+                    }
+                    
+                    // Display Toast with HTML content
+                    const container = document.getElementById('toastContainer');
+                    if (container) {
+                        const toast = document.createElement('div');
+                        toast.className = `toast toast-success`;
+                        toast.innerHTML = `
+                            <div class="toast-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M20 6L9 17l-5-5" stroke="#00d26a" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                            <span class="toast-message">${message}</span>
+                            <button class="toast-close" onclick="this.parentElement.remove()"><svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button>
+                        `;
+                        container.appendChild(toast);
+                        requestAnimationFrame(() => toast.classList.add('toast-show'));
+                        setTimeout(() => { toast.classList.add('toast-hide'); setTimeout(() => toast.remove(), 300); }, 4000);
+                    }
+                    
+                    // Refresh balance immediately via DB fetch
                     if (typeof loadProfile === 'function') {
                         await loadProfile();
                     }
                 }
             }
         });
-        
-        // 2. Betting Freeze Updates
-        socket.on('admin_mode_update', (data) => {
-            // Update global state
-            window.serverMode = data.mode; 
-            
-            // Update Admin UI Label if visible
-            const modeEl = document.getElementById('adminCurrentMode');
-            if (modeEl) {
-                const label = data.mode === 'freeze_bets' ? '❄️ BETS FROZEN' : 'NORMAL';
-                modeEl.textContent = label;
-            }
 
-            // Update Admin Buttons
-            if (typeof updateAdminButtons === 'function') {
-                updateAdminButtons();
-            }
-            
-            // Show toast to user
-            if (data.mode === 'freeze_bets') {
-                showToast('❄️ Betting has been frozen by an admin.', 'warning');
-            } else {
-                showToast('✅ Betting is now enabled.', 'success');
-            }
-        });
-
-        // 3. Global Announcements (Used for Chat Lock)
+        // Listen for global announcements (Admin only)
         socket.on('global_announcement', (data) => {
              if (typeof showAnnouncementBanner === 'function') {
                  showAnnouncementBanner(data.text);
