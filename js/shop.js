@@ -18,7 +18,15 @@ const RANK_TIERS = [
     { id: 'legendary_tag', name: 'Legendary', price: null, color: '#e84393', glow: true, caseOnly: true },
     { id: 'mythic_tag', name: 'Mythic', price: null, color: '#ffa502', glow: true, caseOnly: true },
     { id: 'divine_tag', name: 'Divine', price: null, color: '#ff4757', glow: true, caseOnly: true },
-    { id: 'astral_tag', name: 'Astral', price: null, color: '#6c5ce7', glow: true, caseOnly: true }
+    { id: 'astral_tag', name: 'Astral', price: null, color: '#6c5ce7', glow: true, caseOnly: true },
+    { id: 'celestial_tag', name: 'Celestial', price: null, color: '#00cec9', glow: true, caseOnly: true },
+    { id: 'transcendent_tag', name: 'Transcendent', price: null, color: '#fd79a8', glow: true, caseOnly: true },
+    { id: 'eternal_tag', name: 'Eternal', price: null, color: '#e17055', glow: true, caseOnly: true },
+    { id: 'godlike_tag', name: 'Godlike', price: null, color: '#d63031', glow: true, caseOnly: true },
+    { id: 'omega_tag', name: 'Omega', price: null, color: '#fdcb6e', glow: true, caseOnly: true },
+    { id: 'infinity_tag', name: 'Infinity', price: null, color: '#00b894', glow: true, caseOnly: true },
+    { id: 'void_tag', name: 'Void', price: null, color: '#2d3436', glow: true, caseOnly: true },
+    { id: 'astra_supreme_tag', name: 'Astra Supreme', price: null, color: '#ff0066', glow: true, caseOnly: true }
 ];
 
 function getShopUserKey() {
