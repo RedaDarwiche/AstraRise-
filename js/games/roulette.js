@@ -1,4 +1,4 @@
-// Roulette Game
+// Roulette Game - Fixed Visual
 const ROULETTE_NUMBERS = [
     { num: 0, color: 'green' },
     { num: 1, color: 'red' }, { num: 2, color: 'black' }, { num: 3, color: 'red' }, { num: 4, color: 'black' },
@@ -9,114 +9,100 @@ const ROULETTE_NUMBERS = [
 
 let rouletteSpinning = false;
 let rouletteHistory = [];
+const R_TILE_W = 70; // tile width + gap
 
 function initRouletteWheel() {
     const track = document.getElementById('rouletteTrack');
     if (!track) return;
-    
-    // Build repeated sequence for spinning illusion
+
     let html = '';
     for (let rep = 0; rep < 40; rep++) {
         ROULETTE_NUMBERS.forEach(item => {
-            const colorClass = item.color === 'green' ? 'roulette-num-green' : 
-                              item.color === 'red' ? 'roulette-num-red' : 'roulette-num-black';
-            html += `<div class="roulette-num ${colorClass}">${item.num}</div>`;
+            const cls = item.color === 'green' ? 'roulette-num-green' :
+                        item.color === 'red' ? 'roulette-num-red' : 'roulette-num-black';
+            html += `<div class="roulette-num ${cls}">${item.num}</div>`;
         });
     }
     track.innerHTML = html;
+    track.style.transition = 'none';
     track.style.transform = 'translateX(0px)';
-    
+
     renderRouletteHistory();
 }
 
 function renderRouletteHistory() {
     const histEl = document.getElementById('rouletteHistory');
     if (!histEl) return;
-    
-    let html = '';
-    rouletteHistory.slice(0, 10).forEach(item => {
-        const cls = item.color === 'green' ? 'roulette-hist-green' : 
+    histEl.innerHTML = rouletteHistory.slice(0, 12).map(item => {
+        const cls = item.color === 'green' ? 'roulette-hist-green' :
                    item.color === 'red' ? 'roulette-hist-red' : 'roulette-hist-black';
-        html += `<div class="roulette-hist-item ${cls}">${item.num}</div>`;
-    });
-    histEl.innerHTML = html;
+        return `<div class="roulette-hist-item ${cls}">${item.num}</div>`;
+    }).join('');
 }
 
 async function playRoulette(choice) {
     if (rouletteSpinning) return;
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
-    
+
     const bet = parseInt(document.getElementById('rouletteBet').value);
     if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
     if (bet > userBalance) { showToast('Insufficient balance', 'error'); return; }
-    
+
     rouletteSpinning = true;
     await updateBalance(userBalance - bet);
     totalWagered += bet;
     playBetSound();
-    
-    // Determine result
+
     const resultIndex = Math.floor(Math.random() * ROULETTE_NUMBERS.length);
     const result = ROULETTE_NUMBERS[resultIndex];
-    
-    // Calculate spin position
+
     const track = document.getElementById('rouletteTrack');
-    const numWidth = 70; // width of each number tile + gap
     const totalNums = ROULETTE_NUMBERS.length;
-    
-    // Spin to land on result - aim for somewhere in the middle repetitions
-    const targetRepetition = 25;
-    const targetPos = (targetRepetition * totalNums + resultIndex) * numWidth;
-    const containerWidth = track.parentElement.offsetWidth;
-    const centerOffset = containerWidth / 2 - numWidth / 2;
-    const finalTranslate = -(targetPos - centerOffset);
-    
+    const targetRep = 25;
+    const targetTileIndex = targetRep * totalNums + resultIndex;
+    const targetCenter = targetTileIndex * R_TILE_W + R_TILE_W / 2;
+    const containerW = track.parentElement.offsetWidth;
+    const finalX = -(targetCenter - containerW / 2);
+
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(0px)';
+    track.offsetHeight;
+
     track.style.transition = 'transform 4s cubic-bezier(0.15, 0.6, 0.15, 1)';
-    track.style.transform = `translateX(${finalTranslate}px)`;
-    
+    track.style.transform = `translateX(${finalX}px)`;
+
     document.getElementById('rouletteResult').textContent = 'Spinning...';
-    
+    document.getElementById('rouletteResult').style.color = 'var(--text-secondary)';
+
     setTimeout(() => {
         rouletteSpinning = false;
-        
         rouletteHistory.unshift(result);
         if (rouletteHistory.length > 20) rouletteHistory.pop();
         renderRouletteHistory();
-        
-        let won = false;
-        let winAmount = 0;
-        
-        if (choice === 'green' && result.color === 'green') {
-            won = true;
-            winAmount = bet * 14;
-        } else if (choice === 'red' && result.color === 'red') {
-            won = true;
-            winAmount = bet * 2;
-        } else if (choice === 'black' && result.color === 'black') {
-            won = true;
-            winAmount = bet * 2;
-        }
-        
+
+        let won = false, winAmount = 0;
+        if (choice === 'green' && result.color === 'green') { won = true; winAmount = bet * 14; }
+        else if (choice === 'red' && result.color === 'red') { won = true; winAmount = bet * 2; }
+        else if (choice === 'black' && result.color === 'black') { won = true; winAmount = bet * 2; }
+
+        const resEl = document.getElementById('rouletteResult');
         if (won) {
             updateBalance(userBalance + winAmount);
             totalWins++;
             playCashoutSound();
-            document.getElementById('rouletteResult').textContent = `🎉 ${result.color.toUpperCase()} ${result.num} — Won ${winAmount.toLocaleString()}!`;
-            document.getElementById('rouletteResult').style.color = 'var(--success)';
+            resEl.textContent = `🎉 ${result.color.toUpperCase()} ${result.num} — Won ${winAmount.toLocaleString()}!`;
+            resEl.style.color = 'var(--success)';
             showToast(`Won ${winAmount.toLocaleString()} Astraphobia!`, 'success');
         } else {
-            document.getElementById('rouletteResult').textContent = `${result.color.toUpperCase()} ${result.num} — You lost!`;
-            document.getElementById('rouletteResult').style.color = 'var(--danger)';
+            resEl.textContent = `${result.color.toUpperCase()} ${result.num} — You lost!`;
+            resEl.style.color = 'var(--danger)';
             showToast(`Lost ${bet.toLocaleString()} Astraphobia`, 'error');
         }
-        
-        // Reset track after display
+
         setTimeout(() => {
             track.style.transition = 'none';
             track.style.transform = 'translateX(0px)';
-            document.getElementById('rouletteResult').style.color = 'var(--text-secondary)';
         }, 3000);
-        
     }, 4200);
 }
 
