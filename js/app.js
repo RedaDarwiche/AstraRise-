@@ -35,7 +35,7 @@ function navigateTo(page) {
         }
     });
 
-    switch (page) {
+       switch (page) {
         case 'profile': if (typeof loadProfilePage === 'function') loadProfilePage(); break;
         case 'forum': if (typeof loadForumPosts === 'function') loadForumPosts(); break;
         case 'admin': if (typeof loadAdminUsers === 'function') loadAdminUsers(); break;
@@ -45,6 +45,11 @@ function navigateTo(page) {
         case 'leaderboard': if (typeof loadLeaderboard === 'function') loadLeaderboard(); break;
         case 'shop': if (typeof renderShop === 'function') renderShop(); break;
         case 'inventory': if (typeof loadInventoryPage === 'function') loadInventoryPage(); break;
+        case 'cases': 
+            if (typeof renderCaseSelect === 'function') renderCaseSelect();
+            if (typeof initCaseBattleSocket === 'function') initCaseBattleSocket();
+            if (socket && socket.connected) socket.emit('case_get_lobbies');
+            break;
     }
     window.scrollTo(0, 0);
 }
@@ -186,3 +191,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
