@@ -51,12 +51,10 @@ function getGlobalMultiplier() {
     return globalMultiplierValue;
 }
 
-// Added back to prevent ReferenceError in game files
 function getTrollMode() {
     return 'normal';
 }
 
-// CHECK IF BETS ARE ALLOWED
 function handleTrollResult(originalWin, originalMultiplier, betAmount) {
     return { 
         win: originalWin, 
@@ -99,7 +97,47 @@ function setGlobalMultiplier() {
     }
 }
 
-// USER MANAGEMENT (Load/Update Balances)
+// RESET ALL BALANCES
+async function resetAllBalances() {
+    if (!isOwner()) return;
+    if (!confirm('⚠️ Are you ABSOLUTELY sure you want to reset ALL user balances to 100? This cannot be undone!')) return;
+    if (!confirm('⚠️ FINAL WARNING: This will reset EVERY user balance and vault to defaults. Continue?')) return;
+
+    try {
+        const profiles = await supabase.select('profiles', 'id,username');
+        if (!profiles || profiles.length === 0) {
+            showToast('No users found', 'error');
+            return;
+        }
+
+        let resetCount = 0;
+        for (const profile of profiles) {
+            try {
+                await supabase.update('profiles', { 
+                    high_score: 100, 
+                    vault_balance: 0,
+                    updated_at: new Date().toISOString()
+                }, `id=eq.${profile.id}`);
+                resetCount++;
+            } catch(e) {
+                console.error(`Failed to reset ${profile.username}:`, e);
+            }
+        }
+
+        // Reset own balance locally
+        userBalance = 100;
+        if (typeof vaultBalance !== 'undefined') vaultBalance = 0;
+        updateBalanceDisplay();
+        if (typeof updateVaultDisplay === 'function') updateVaultDisplay();
+
+        showToast(`Reset ${resetCount} user balances to 100!`, 'success');
+        loadAdminUsers();
+    } catch(e) {
+        showToast('Error resetting balances: ' + e.message, 'error');
+    }
+}
+
+// USER MANAGEMENT
 async function loadAdminUsers() {
     if (!isOwner()) return;
     try {
@@ -110,6 +148,11 @@ async function loadAdminUsers() {
             return;
         }
         document.getElementById('adminTotalUsers').textContent = profiles.length;
+        
+        let totalCoins = 0;
+        profiles.forEach(p => { totalCoins += (p.high_score || 0) + (p.vault_balance || 0); });
+        const totalCoinsEl = document.getElementById('adminTotalCoins');
+        if (totalCoinsEl) totalCoinsEl.textContent = abbreviateNumber ? abbreviateNumber(totalCoins) : totalCoins.toLocaleString();
         
         container.innerHTML = profiles.map(p => `
             <div class="admin-user-item">
@@ -129,7 +172,7 @@ async function updateUserBalance(userId) {
     const newBalance = parseInt(input.value);
     
     try {
-        const { data: oldProfile } = await supabase.selectSingle('profiles', 'high_score', `id=eq.${userId}`);
+        const oldProfile = await supabase.selectSingle('profiles', 'high_score', `id=eq.${userId}`);
         const oldBal = oldProfile ? oldProfile.high_score : 0;
         const diff = newBalance - oldBal;
 
@@ -147,7 +190,7 @@ async function updateUserBalance(userId) {
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
-// SEND COINS (By Username)
+// SEND COINS
 async function giveCoinsToUser() {
     if (!isOwner()) return;
     const username = document.getElementById('giveCoinsUsername').value.trim();
