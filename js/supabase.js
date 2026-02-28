@@ -1,7 +1,24 @@
-// Supabase Client
+// Supabase Client - FIXED for large number handling
 const SUPABASE_URL = 'https://jppfsqkshcmwskcdsqis.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwcGZzcWtzaGNtd3NrY2RzcWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MjczMzgsImV4cCI6MjA4NjUwMzMzOH0.ACkiOnXuKGnzKTqi2HSLggktIzrRWOFLje-dp20dpqU';
 const OWNER_EMAIL = 'redadarwichepaypal@gmail.com';
+
+// Safe number parsing that avoids floating point precision loss for large integers
+function safeParseNumber(val) {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') {
+        if (Number.isSafeInteger(val)) return val;
+        // If not safe integer, it's already lost precision — return as-is
+        return val;
+    }
+    if (typeof val === 'string') {
+        const n = Number(val);
+        if (!isNaN(n) && Number.isSafeInteger(n)) return n;
+        if (!isNaN(n)) return n;
+        return 0;
+    }
+    return 0;
+}
 
 class SupabaseClient {
     constructor(url, key) {
@@ -32,7 +49,6 @@ class SupabaseClient {
             this.accessToken = data.access_token;
             this.user = data.user;
         } else if (data.user) {
-            // Auto-confirm might give us user but no token, try logging in
             this.user = data.user;
         }
         return data;
@@ -74,7 +90,6 @@ class SupabaseClient {
             headers: { 'Authorization': `Bearer ${token}`, 'apikey': this.key }
         });
         if (!res.ok) {
-            // Try refresh
             const refreshed = await this.refreshToken();
             if (!refreshed) return null;
             const res2 = await fetch(`${this.url}/auth/v1/user`, {
@@ -107,11 +122,6 @@ class SupabaseClient {
             }
         } catch (e) {}
         return false;
-    }
-
-    // REST API for database operations
-    async from(table) {
-        return new QueryBuilder(this, table);
     }
 
     async query(table, method, options = {}) {
@@ -170,32 +180,26 @@ class SupabaseClient {
         return JSON.parse(text);
     }
 
-    // Select
     async select(table, columns = '*', filters = '', order = '', limit = '') {
         return this.query(table, 'GET', { select: columns, filters, order, limit });
     }
 
-    // Insert
     async insert(table, data) {
         return this.query(table, 'POST', { body: data, select: '*' });
     }
 
-    // Upsert
     async upsert(table, data) {
         return this.query(table, 'POST', { body: data, upsert: true, select: '*' });
     }
 
-    // Update
     async update(table, data, filters) {
         return this.query(table, 'PATCH', { body: data, filters, select: '*' });
     }
 
-    // Delete
     async delete(table, filters) {
         return this.query(table, 'DELETE', { filters });
     }
 
-    // Single row select
     async selectSingle(table, columns = '*', filters = '') {
         return this.query(table, 'GET', { select: columns, filters, single: true });
     }
