@@ -3116,3 +3116,21 @@ a:hover {
     flex-wrap: wrap;
     margin-top: 8px;
 }
+/* ===== ADMIN TOGGLES ===== */
+.admin-toggles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+}
+.admin-danger-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.admin-danger-grid .btn { font-size: 0.85em; padding: 12px; }
+.troll-active {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+    box-shadow: 0 0 12px rgba(255,255,255,0.3);
+    transform: scale(1.02);
+}
