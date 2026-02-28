@@ -1,7 +1,7 @@
 // Towers Game
 let towersGameActive = false;
 let towersBetAmount = 0;
-let towersCurrentRow = 7; // Start from bottom (row 7 = bottom)
+let towersCurrentRow = 7; 
 let towersMultiplier = 1.0;
 let towersGrid = [];
 let towersDiff = 'medium';
@@ -25,7 +25,6 @@ function initTowersGrid() {
         rowEl.className = 'tower-row';
         rowEl.dataset.row = row;
 
-        // Determine safe tiles
         const positions = Array.from({length: config.tiles}, (_, i) => i);
         const shuffled = [...positions];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -53,12 +52,6 @@ function startTowers() {
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
     if (towersGameActive) return;
 
-    // FREEZE CHECK
-    if (window.serverMode === 'freeze_bets') {
-        showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
-        return;
-    }
-
     const bet = parseInt(document.getElementById('towersBet').value);
     if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
     if (bet > userBalance) { showToast('Insufficient balance', 'error'); return; }
@@ -85,18 +78,14 @@ function clickTower(row, col) {
     if (row !== towersCurrentRow) return;
 
     const config = towersDiffConfig[towersDiff];
-    const trollMode = getTrollMode();
     const tileData = towersGrid[row][col];
     
     let isSafe = tileData.safe;
-    if (trollMode === 'always_win') isSafe = true;
-    if (trollMode === 'always_lose') isSafe = false;
 
     if (isSafe) {
         tileData.element.classList.add('safe', 'revealed');
         tileData.element.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" fill="none"/></svg>';
 
-        // Show dangers in this row
         towersGrid[row].forEach((t, i) => {
             if (i !== col) {
                 t.element.classList.add('revealed');
@@ -120,7 +109,6 @@ function clickTower(row, col) {
             return;
         }
 
-        // Unlock next row
         towersGrid[towersCurrentRow].forEach(t => {
             t.element.classList.remove('locked');
         });
@@ -128,7 +116,6 @@ function clickTower(row, col) {
         tileData.element.classList.add('danger', 'revealed');
         tileData.element.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="white" stroke-width="3"/><line x1="6" y1="6" x2="18" y2="18" stroke="white" stroke-width="3"/></svg>';
 
-        // Reveal all
         towersGrid.forEach(rowData => {
             rowData.forEach(t => {
                 t.element.classList.add('revealed');
@@ -159,5 +146,4 @@ function cashoutTowers() {
     showToast(`Cashed out! Won ${winAmount} Astraphobia!`, 'success');
 }
 
-// Initialize
 initTowersGrid();
