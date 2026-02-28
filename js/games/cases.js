@@ -22,19 +22,19 @@ const CASE_TIERS = [
     { id: 'basic', name: '⚪ Basic Case', cost: 100, tags: ['common_tag', 'uncommon_tag'] },
     { id: 'starter', name: '🟢 Starter Case', cost: 250, tags: ['common_tag', 'uncommon_tag', 'rare_tag'] },
     { id: 'mid', name: '🔵 Mid-Tier Case', cost: 500, tags: ['uncommon_tag', 'rare_tag', 'epic_tag', 'legendary_tag'] },
-    { id: 'astraphobia1k', name: '🟡 Astraphobia 1K', cost: 1000, tags: ['rare_tag', 'epic_tag', 'legendary_tag', 'mythic_tag'] },
+    { id: 'hunter', name: '🏹 Hunter Case', cost: 1000, tags: ['rare_tag', 'epic_tag', 'legendary_tag', 'mythic_tag'] },
     { id: 'premium', name: '🟣 Premium Case', cost: 2500, tags: ['epic_tag', 'legendary_tag', 'mythic_tag', 'divine_tag'] },
     { id: 'ultra', name: '🔴 Ultra Case', cost: 5000, tags: ['legendary_tag', 'mythic_tag', 'divine_tag', 'astral_tag'] },
     { id: 'astral', name: '⭐ Astral Case', cost: 10000, tags: ['mythic_tag', 'divine_tag', 'astral_tag', 'celestial_tag'] },
-    { id: 'astraphobia25k', name: '💎 Astraphobia 25K', cost: 25000, tags: ['divine_tag', 'astral_tag', 'celestial_tag', 'transcendent_tag'] },
-    { id: 'astraphobia50k', name: '🌟 Astraphobia 50K', cost: 50000, tags: ['astral_tag', 'celestial_tag', 'transcendent_tag', 'eternal_tag'] },
-    { id: 'astraphobia100k', name: '🔥 Astraphobia 100K', cost: 100000, tags: ['celestial_tag', 'transcendent_tag', 'eternal_tag', 'godlike_tag'] },
-    { id: 'astraphobia250k', name: '⚡ Astraphobia 250K', cost: 250000, tags: ['transcendent_tag', 'eternal_tag', 'godlike_tag', 'omega_tag'] },
-    { id: 'astraphobia500k', name: '💫 Astraphobia 500K', cost: 500000, tags: ['eternal_tag', 'godlike_tag', 'omega_tag', 'infinity_tag'] },
-    { id: 'astraphobia1m', name: '🏆 Astraphobia 1M', cost: 1000000, tags: ['godlike_tag', 'omega_tag', 'infinity_tag', 'void_tag'] },
-    { id: 'astraphobia10m', name: '👑 Astraphobia 10M', cost: 10000000, tags: ['omega_tag', 'infinity_tag', 'void_tag', 'astra_supreme_tag'] },
-    { id: 'astraphobia100m', name: '🌌 Astraphobia 100M', cost: 100000000, tags: ['infinity_tag', 'void_tag', 'astra_supreme_tag'] },
-    { id: 'astraphobia1b', name: '♾️ Astraphobia 1B', cost: 1000000000, tags: ['void_tag', 'astra_supreme_tag'] }
+    { id: 'phantom', name: '👻 Phantom Case', cost: 25000, tags: ['divine_tag', 'astral_tag', 'celestial_tag', 'transcendent_tag'] },
+    { id: 'eclipse', name: '🌑 Eclipse Case', cost: 50000, tags: ['astral_tag', 'celestial_tag', 'transcendent_tag', 'eternal_tag'] },
+    { id: 'inferno', name: '🔥 Inferno Case', cost: 100000, tags: ['celestial_tag', 'transcendent_tag', 'eternal_tag', 'godlike_tag'] },
+    { id: 'tempest', name: '⚡ Tempest Case', cost: 250000, tags: ['transcendent_tag', 'eternal_tag', 'godlike_tag', 'omega_tag'] },
+    { id: 'nebula', name: '💫 Nebula Case', cost: 500000, tags: ['eternal_tag', 'godlike_tag', 'omega_tag', 'infinity_tag'] },
+    { id: 'sovereign', name: '🏆 Sovereign Case', cost: 1000000, tags: ['godlike_tag', 'omega_tag', 'infinity_tag', 'void_tag'] },
+    { id: 'oblivion', name: '👑 Oblivion Case', cost: 10000000, tags: ['omega_tag', 'infinity_tag', 'void_tag', 'astra_supreme_tag'] },
+    { id: 'singularity', name: '🌌 Singularity Case', cost: 100000000, tags: ['infinity_tag', 'void_tag', 'astra_supreme_tag'] },
+    { id: 'genesis', name: '♾️ Genesis Case', cost: 1000000000, tags: ['void_tag', 'astra_supreme_tag'] }
 ];
 
 let caseSpinning = false;
