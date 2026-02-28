@@ -1,21 +1,14 @@
-// Supabase Client - FIXED for large number handling
+// Supabase Client - Auto token refresh on 401
 const SUPABASE_URL = 'https://jppfsqkshcmwskcdsqis.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwcGZzcWtzaGNtd3NrY2RzcWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MjczMzgsImV4cCI6MjA4NjUwMzMzOH0.ACkiOnXuKGnzKTqi2HSLggktIzrRWOFLje-dp20dpqU';
 const OWNER_EMAIL = 'redadarwichepaypal@gmail.com';
 
-// Safe number parsing that avoids floating point precision loss for large integers
 function safeParseNumber(val) {
     if (val === null || val === undefined) return 0;
-    if (typeof val === 'number') {
-        if (Number.isSafeInteger(val)) return val;
-        // If not safe integer, it's already lost precision — return as-is
-        return val;
-    }
+    if (typeof val === 'number') return val;
     if (typeof val === 'string') {
         const n = Number(val);
-        if (!isNaN(n) && Number.isSafeInteger(n)) return n;
-        if (!isNaN(n)) return n;
-        return 0;
+        return isNaN(n) ? 0 : n;
     }
     return 0;
 }
@@ -26,15 +19,15 @@ class SupabaseClient {
         this.key = key;
         this.accessToken = null;
         this.user = null;
+        this._refreshing = null;
     }
 
     headers() {
-        const h = {
+        return {
             'Content-Type': 'application/json',
             'apikey': this.key,
             'Authorization': `Bearer ${this.accessToken || this.key}`
         };
-        return h;
     }
 
     async signUp(email, password) {
@@ -44,10 +37,12 @@ class SupabaseClient {
             body: JSON.stringify({ email, password, options: { data: {} } })
         });
         const data = await res.json();
-        if (data.error) throw new Error(data.error.message || data.msg || 'Signup failed');
+        if (data.error) throw new Error(data.error.message || 'Signup failed');
         if (data.access_token) {
             this.accessToken = data.access_token;
             this.user = data.user;
+            localStorage.setItem('sb_access_token', data.access_token);
+            if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
         } else if (data.user) {
             this.user = data.user;
         }
@@ -86,9 +81,11 @@ class SupabaseClient {
         const token = this.accessToken || localStorage.getItem('sb_access_token');
         if (!token) return null;
         this.accessToken = token;
+
         const res = await fetch(`${this.url}/auth/v1/user`, {
             headers: { 'Authorization': `Bearer ${token}`, 'apikey': this.key }
         });
+
         if (!res.ok) {
             const refreshed = await this.refreshToken();
             if (!refreshed) return null;
@@ -99,77 +96,87 @@ class SupabaseClient {
             this.user = await res2.json();
             return this.user;
         }
+
         this.user = await res.json();
         return this.user;
     }
 
     async refreshToken() {
-        const refreshToken = localStorage.getItem('sb_refresh_token');
-        if (!refreshToken) return false;
-        try {
-            const res = await fetch(`${this.url}/auth/v1/token?grant_type=refresh_token`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': this.key },
-                body: JSON.stringify({ refresh_token: refreshToken })
-            });
-            const data = await res.json();
-            if (data.access_token) {
-                this.accessToken = data.access_token;
-                this.user = data.user;
-                localStorage.setItem('sb_access_token', data.access_token);
-                localStorage.setItem('sb_refresh_token', data.refresh_token);
-                return true;
+        // Prevent multiple simultaneous refreshes
+        if (this._refreshing) return this._refreshing;
+
+        this._refreshing = (async () => {
+            const refreshToken = localStorage.getItem('sb_refresh_token');
+            if (!refreshToken) return false;
+            try {
+                const res = await fetch(`${this.url}/auth/v1/token?grant_type=refresh_token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'apikey': this.key },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+                const data = await res.json();
+                if (data.access_token) {
+                    this.accessToken = data.access_token;
+                    this.user = data.user;
+                    localStorage.setItem('sb_access_token', data.access_token);
+                    if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
+                    console.log('[Supabase] Token refreshed successfully');
+                    return true;
+                }
+            } catch (e) {
+                console.error('[Supabase] Token refresh failed:', e);
             }
-        } catch (e) {}
-        return false;
+            return false;
+        })();
+
+        const result = await this._refreshing;
+        this._refreshing = null;
+        return result;
     }
 
-    async query(table, method, options = {}) {
+    async query(table, method, options = {}, _retried = false) {
         let url = `${this.url}/rest/v1/${table}`;
         const headers = this.headers();
-        
-        if (options.select) {
-            url += `?select=${options.select}`;
-        }
-        
+
+        if (options.select) url += `?select=${options.select}`;
         if (options.filters) {
-            const sep = url.includes('?') ? '&' : '?';
-            url += sep + options.filters;
+            url += (url.includes('?') ? '&' : '?') + options.filters;
         }
-
         if (options.order) {
-            const sep = url.includes('?') ? '&' : '?';
-            url += sep + `order=${options.order}`;
+            url += (url.includes('?') ? '&' : '?') + `order=${options.order}`;
         }
-
         if (options.limit) {
-            const sep = url.includes('?') ? '&' : '?';
-            url += sep + `limit=${options.limit}`;
+            url += (url.includes('?') ? '&' : '?') + `limit=${options.limit}`;
         }
-
         if (options.single) {
             headers['Accept'] = 'application/vnd.pgrst.object+json';
         }
-
         if (method === 'POST' && options.upsert) {
             headers['Prefer'] = 'resolution=merge-duplicates';
         }
-
         if (method === 'PATCH' || method === 'DELETE') {
             headers['Prefer'] = 'return=representation';
         }
-
         if (method === 'POST') {
             headers['Prefer'] = headers['Prefer'] || 'return=representation';
         }
 
         const fetchOptions = { method, headers };
-        if (options.body) {
-            fetchOptions.body = JSON.stringify(options.body);
-        }
+        if (options.body) fetchOptions.body = JSON.stringify(options.body);
 
         const res = await fetch(url, fetchOptions);
-        
+
+        // AUTO REFRESH ON 401
+        if (res.status === 401 && !_retried) {
+            console.log('[Supabase] Got 401, attempting token refresh...');
+            const refreshed = await this.refreshToken();
+            if (refreshed) {
+                return this.query(table, method, options, true);
+            } else {
+                throw new Error('Session expired. Please login again.');
+            }
+        }
+
         if (!res.ok) {
             const err = await res.json().catch(() => ({ message: 'Request failed' }));
             throw new Error(err.message || err.details || 'Database error');
