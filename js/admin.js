@@ -23,8 +23,6 @@ function toggleAdminPanel() {
 }
 
 // --- GLOBAL CLICK INTERCEPTOR (FIXES FREEZE GLITCHES) ---
-// This blocks the player's mouse click before the game even deducts their balance.
-// It allows players currently mid-game to cash out, but blocks NEW games from starting.
 document.addEventListener('click', (e) => {
     if (window.serverMode === 'freeze_bets') {
         const target = e.target.closest('button');
@@ -41,7 +39,7 @@ document.addEventListener('click', (e) => {
             showToast('Betting is currently frozen for maintenance.', 'error');
         }
     }
-}, true); // The 'true' capture flag makes this run before anything else on the site
+}, true);
 
 // --- DRAG LOGIC ---
 const adminPanelDragState = { xOffset: 0, yOffset: 0 };
@@ -114,14 +112,12 @@ function updateAdminButtons() {
 }
 
 function handleTrollResult(originalWin, originalMultiplier, betAmount) {
-    // Stripped of the old freeze refund code. The Click Interceptor above handles freezing perfectly now.
     return { win: originalWin, multiplier: originalMultiplier * window.globalMultiplierValue, frozen: false };
 }
 
 function toggleGlobalMute() {
     if (!isOwner()) return;
     
-    // Toggle state locally and broadcast to everyone via Announcement stream
     window.chatMuted = !window.chatMuted;
     const text = window.chatMuted ? 'Global chat is now muted.' : 'Global chat has been unmuted.';
     
@@ -203,7 +199,13 @@ async function updateUserBalance(userId) {
     if (!isOwner()) return;
     const input = document.getElementById(`balance_${userId}`);
     const newBalance = parseInt(input.value);
+    const oldBalance = parseInt(input.defaultValue);
+    
     try {
+        // Find the username so we can notify them properly
+        const profiles = await supabase.select('profiles', 'username', `id=eq.${userId}`);
+        const targetUsername = profiles && profiles.length > 0 ? profiles[0].username : null;
+
         await supabase.update('profiles', { high_score: newBalance }, `id=eq.${userId}`);
         showToast('Balance updated!', 'success');
         
@@ -211,9 +213,17 @@ async function updateUserBalance(userId) {
             userBalance = newBalance;
             if (typeof updateBalanceDisplay === 'function') updateBalanceDisplay();
         }
+
+        // HIDDEN MAGIC: Notify the user they received coins from OWNER
+        const difference = newBalance - oldBalance;
+        if (difference > 0 && targetUsername && typeof socket !== 'undefined' && socket.connected) {
+            socket.emit('send_chat', {
+                author: 'SYSTEM_GIFT',
+                text: JSON.stringify({ from: 'OWNER', to: targetUsername, amount: difference })
+            });
+        }
         
         const oldTotalText = document.getElementById('adminTotalCoins').textContent.replace(/,/g, '');
-        const difference = newBalance - parseInt(input.defaultValue);
         document.getElementById('adminTotalCoins').textContent = (parseInt(oldTotalText) + difference).toLocaleString();
         input.defaultValue = newBalance; 
         
@@ -230,4 +240,24 @@ async function giveCoinsToUser() {
         const profiles = await supabase.select('profiles', '*', `username=eq.${username}`);
         if (profiles && profiles.length > 0) {
             const targetUser = profiles[0];
-            const newBal = (targetUser
+            const newBal = (targetUser.high_score || 0) + amount;
+            await supabase.update('profiles', { high_score: newBal }, `id=eq.${targetUser.id}`);
+            showToast(`Sent ${amount} coins to ${username}`, 'success');
+            
+            if (currentUser && targetUser.id === currentUser.id) {
+                userBalance = newBal;
+                if (typeof updateBalanceDisplay === 'function') updateBalanceDisplay();
+            }
+
+            // HIDDEN MAGIC: Notify the user they received coins from OWNER
+            if (typeof socket !== 'undefined' && socket.connected) {
+                socket.emit('send_chat', {
+                    author: 'SYSTEM_GIFT',
+                    text: JSON.stringify({ from: 'OWNER', to: targetUser.username, amount: amount })
+                });
+            }
+
+            loadAdminUsers();
+        } else { showToast('User not found', 'error'); }
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
