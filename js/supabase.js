@@ -27,26 +27,12 @@ class SupabaseClient {
             body: JSON.stringify({ email, password, options: { data: {} } })
         });
         const data = await res.json();
-        
-        // BULLETPROOF ERROR CHECK
-        if (!res.ok || data.error) {
-            const errMsg = data.error_description || data.message || data.msg || (data.error && data.error.message) || 'Signup failed';
-            throw new Error(errMsg);
-        }
-        
+        if (data.error) throw new Error(data.error.message || data.msg || 'Signup failed');
         if (data.access_token) {
             this.accessToken = data.access_token;
-            localStorage.setItem('sb_access_token', data.access_token);
-            if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
-            
-            if (!data.user) {
-                const uRes = await fetch(`${this.url}/auth/v1/user`, {
-                    headers: { 'Authorization': `Bearer ${data.access_token}`, 'apikey': this.key }
-                });
-                if (uRes.ok) data.user = await uRes.json();
-            }
             this.user = data.user;
         } else if (data.user) {
+            // Auto-confirm might give us user but no token, try logging in
             this.user = data.user;
         }
         return data;
@@ -59,31 +45,16 @@ class SupabaseClient {
             body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        
-        // BULLETPROOF ERROR CHECK - Stops fake logins dead in their tracks
-        if (!res.ok || data.error) {
-            const errMsg = data.error_description || data.message || data.msg || (data.error && data.error.message) || 'Invalid login credentials';
-            throw new Error(errMsg);
-        }
-        
-        if (data.access_token) {
-            this.accessToken = data.access_token;
-            localStorage.setItem('sb_access_token', data.access_token);
-            if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
-            
-            if (!data.user) {
-                const uRes = await fetch(`${this.url}/auth/v1/user`, {
-                    headers: { 'Authorization': `Bearer ${data.access_token}`, 'apikey': this.key }
-                });
-                if (uRes.ok) data.user = await uRes.json();
-            }
-            this.user = data.user;
-        }
+        if (data.error) throw new Error(data.error.message || data.error_description || 'Login failed');
+        this.accessToken = data.access_token;
+        this.user = data.user;
+        localStorage.setItem('sb_access_token', data.access_token);
+        localStorage.setItem('sb_refresh_token', data.refresh_token);
         return data;
     }
 
-    async signOut(localOnly = false) {
-        if (!localOnly && this.accessToken) {
+    async signOut() {
+        if (this.accessToken) {
             await fetch(`${this.url}/auth/v1/logout`, {
                 method: 'POST',
                 headers: this.headers()
@@ -98,32 +69,23 @@ class SupabaseClient {
     async getUser() {
         const token = this.accessToken || localStorage.getItem('sb_access_token');
         if (!token) return null;
-        
         this.accessToken = token;
-        
-        try {
-            const res = await fetch(`${this.url}/auth/v1/user`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'apikey': this.key }
+        const res = await fetch(`${this.url}/auth/v1/user`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'apikey': this.key }
+        });
+        if (!res.ok) {
+            // Try refresh
+            const refreshed = await this.refreshToken();
+            if (!refreshed) return null;
+            const res2 = await fetch(`${this.url}/auth/v1/user`, {
+                headers: { 'Authorization': `Bearer ${this.accessToken}`, 'apikey': this.key }
             });
-            
-            if (!res.ok) {
-                const refreshed = await this.refreshToken();
-                if (!refreshed) {
-                    await this.signOut(true); 
-                    return null;
-                }
-                const res2 = await fetch(`${this.url}/auth/v1/user`, {
-                    headers: { 'Authorization': `Bearer ${this.accessToken}`, 'apikey': this.key }
-                });
-                if (!res2.ok) return null;
-                this.user = await res2.json();
-                return this.user;
-            }
-            this.user = await res.json();
+            if (!res2.ok) return null;
+            this.user = await res2.json();
             return this.user;
-        } catch(e) {
-            return null;
         }
+        this.user = await res.json();
+        return this.user;
     }
 
     async refreshToken() {
@@ -135,22 +97,12 @@ class SupabaseClient {
                 headers: { 'Content-Type': 'application/json', 'apikey': this.key },
                 body: JSON.stringify({ refresh_token: refreshToken })
             });
-            
-            if (!res.ok) return false;
-
             const data = await res.json();
             if (data.access_token) {
                 this.accessToken = data.access_token;
-                localStorage.setItem('sb_access_token', data.access_token);
-                if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
-                
-                if (!data.user) {
-                    const uRes = await fetch(`${this.url}/auth/v1/user`, {
-                        headers: { 'Authorization': `Bearer ${data.access_token}`, 'apikey': this.key }
-                    });
-                    if (uRes.ok) data.user = await uRes.json();
-                }
                 this.user = data.user;
+                localStorage.setItem('sb_access_token', data.access_token);
+                localStorage.setItem('sb_refresh_token', data.refresh_token);
                 return true;
             }
         } catch (e) {}
@@ -166,18 +118,45 @@ class SupabaseClient {
         let url = `${this.url}/rest/v1/${table}`;
         const headers = this.headers();
         
-        if (options.select) url += `?select=${options.select}`;
-        if (options.filters) url += (url.includes('?') ? '&' : '?') + options.filters;
-        if (options.order) url += (url.includes('?') ? '&' : '?') + `order=${options.order}`;
-        if (options.limit) url += (url.includes('?') ? '&' : '?') + `limit=${options.limit}`;
+        if (options.select) {
+            url += `?select=${options.select}`;
+        }
+        
+        if (options.filters) {
+            const sep = url.includes('?') ? '&' : '?';
+            url += sep + options.filters;
+        }
 
-        if (options.single) headers['Accept'] = 'application/vnd.pgrst.object+json';
-        if (method === 'POST' && options.upsert) headers['Prefer'] = 'resolution=merge-duplicates';
-        if (method === 'PATCH' || method === 'DELETE') headers['Prefer'] = 'return=representation';
-        if (method === 'POST') headers['Prefer'] = headers['Prefer'] || 'return=representation';
+        if (options.order) {
+            const sep = url.includes('?') ? '&' : '?';
+            url += sep + `order=${options.order}`;
+        }
+
+        if (options.limit) {
+            const sep = url.includes('?') ? '&' : '?';
+            url += sep + `limit=${options.limit}`;
+        }
+
+        if (options.single) {
+            headers['Accept'] = 'application/vnd.pgrst.object+json';
+        }
+
+        if (method === 'POST' && options.upsert) {
+            headers['Prefer'] = 'resolution=merge-duplicates';
+        }
+
+        if (method === 'PATCH' || method === 'DELETE') {
+            headers['Prefer'] = 'return=representation';
+        }
+
+        if (method === 'POST') {
+            headers['Prefer'] = headers['Prefer'] || 'return=representation';
+        }
 
         const fetchOptions = { method, headers };
-        if (options.body) fetchOptions.body = JSON.stringify(options.body);
+        if (options.body) {
+            fetchOptions.body = JSON.stringify(options.body);
+        }
 
         const res = await fetch(url, fetchOptions);
         
@@ -191,21 +170,32 @@ class SupabaseClient {
         return JSON.parse(text);
     }
 
+    // Select
     async select(table, columns = '*', filters = '', order = '', limit = '') {
         return this.query(table, 'GET', { select: columns, filters, order, limit });
     }
+
+    // Insert
     async insert(table, data) {
         return this.query(table, 'POST', { body: data, select: '*' });
     }
+
+    // Upsert
     async upsert(table, data) {
         return this.query(table, 'POST', { body: data, upsert: true, select: '*' });
     }
+
+    // Update
     async update(table, data, filters) {
         return this.query(table, 'PATCH', { body: data, filters, select: '*' });
     }
+
+    // Delete
     async delete(table, filters) {
         return this.query(table, 'DELETE', { filters });
     }
+
+    // Single row select
     async selectSingle(table, columns = '*', filters = '') {
         return this.query(table, 'GET', { select: columns, filters, single: true });
     }
