@@ -53,6 +53,12 @@ function startTowers() {
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
     if (towersGameActive) return;
 
+    // FREEZE CHECK
+    if (window.serverMode === 'freeze_bets') {
+        showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
+        return;
+    }
+
     const bet = parseInt(document.getElementById('towersBet').value);
     if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
     if (bet > userBalance) { showToast('Insufficient balance', 'error'); return; }
