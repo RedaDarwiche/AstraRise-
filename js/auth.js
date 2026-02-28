@@ -4,7 +4,6 @@ let userProfile = null;
 let userBalance = 0;
 let totalWins = 0;
 let totalWagered = 0;
-let lastBalanceUpdateLocal = 0; // <--- ADD THIS LINE
 
 async function initAuth() {
     try {
@@ -31,45 +30,24 @@ async function login() {
         return;
     }
 
-    // Disable button to prevent double clicks
-    const btn = document.querySelector('#loginModal .btn-primary');
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Logging in...';
-    }
-
     try {
         const data = await supabase.signIn(email, password);
-        
         currentUser = data.user;
-        
-        // Double check we actually got the token
-        if (!currentUser && supabase.accessToken) {
-            currentUser = await supabase.getUser();
-        }
-
-        if (!currentUser) throw new Error("Login failed to verify user session.");
-
         try {
             await loadProfile();
         } catch (profileErr) {
             console.error('Profile load after login:', profileErr);
+            // Still show logged-in UI even if profile fetch fails
             userBalance = 0;
         }
-        
         updateAuthUI(true);
         hideModal('loginModal');
         showToast('Welcome back!', 'success');
     } catch (e) {
         showToast(e.message, 'error');
-    } finally {
-        // Re-enable the button
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Login';
-        }
     }
 }
+
 
 async function signup() {
     const username = document.getElementById('signupUsername').value.trim();
@@ -91,37 +69,23 @@ async function signup() {
         return;
     }
 
-    // Disable button to prevent double-click "random closes"
-    const btn = document.querySelector('#signupModal .btn-primary');
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Creating Account...';
-    }
-
     try {
-        let data = await supabase.signUp(email, password);
+        const data = await supabase.signUp(email, password);
 
-        // CATCH SILENT FAILURES: 
-        // Supabase returns 200 OK with an empty identities array if the email already exists to prevent email enumeration.
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-            throw new Error("Email is already registered. Please log in.");
-        }
-
-        // If signup requires confirmation and didn't give us a token, try signing in.
-        if (!supabase.accessToken) {
-            try {
-                const loginData = await supabase.signIn(email, password);
-                data = loginData;
-            } catch (loginErr) {
-                // Fails here because email confirmation is required by Supabase settings
-                showToast('Account created! Please check your email to verify.', 'info');
+        // Try to sign in immediately after signup
+        try {
+            const loginData = await supabase.signIn(email, password);
+            currentUser = loginData.user;
+        } catch (loginErr) {
+            // If auto-login fails, the user might need to confirm email
+            if (data.user) {
+                currentUser = data.user;
+            } else {
+                showToast('Account created! Please check your email or try logging in.', 'info');
                 hideModal('signupModal');
-                return; // Stop right here! Prevent entering a ghost session
+                return;
             }
         }
-
-        currentUser = data.user;
-        if (!currentUser) currentUser = await supabase.getUser();
 
         // Create profile
         if (currentUser && currentUser.id) {
@@ -152,14 +116,7 @@ async function signup() {
         hideModal('signupModal');
         showToast('Account created! You received 100 Astraphobia coins!', 'success');
     } catch (e) {
-        // We DO NOT close the modal here, so the user can easily see the error and fix their typo
         showToast(e.message, 'error');
-    } finally {
-        // Re-enable the button
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Create Account';
-        }
     }
 }
 
@@ -213,7 +170,6 @@ async function loadProfile() {
 }
 
 async function updateBalance(newBalance) {
-    lastBalanceUpdateLocal = Date.now(); // <--- ADD THIS LINE
     userBalance = Math.max(0, Math.round(newBalance));
     updateBalanceDisplay();
     if (currentUser) {
@@ -256,6 +212,7 @@ function updateAuthUI(loggedIn) {
         }
 
         // Check if owner
+        console.log('Auth check - email:', currentUser.email, 'OWNER_EMAIL:', OWNER_EMAIL);
         if (currentUser.email === OWNER_EMAIL) {
             if (floatingAdminBtn) {
                 floatingAdminBtn.style.display = 'flex';
@@ -291,40 +248,10 @@ function checkAndShowOwnerBtn() {
     if (!btn) return;
     if (currentUser && currentUser.email === OWNER_EMAIL) {
         btn.style.display = 'flex';
+        console.log('Owner button activated for:', currentUser.email);
     }
 }
 
 // Run the owner check after a delay too, in case auth is slow
 setTimeout(checkAndShowOwnerBtn, 2000);
 setTimeout(checkAndShowOwnerBtn, 5000);
-
-// --- BACKGROUND BALANCE SYNC ---
-// Automatically fetches the user's balance every 8 seconds so if an Admin 
-// gives them coins, it updates their screen instantly without refreshing.
-setInterval(async () => {
-    if (!currentUser) return;
-    
-    // Skip sync if the user just placed a bet (prevents UI glitches while gaming)
-    if (Date.now() - lastBalanceUpdateLocal < 5000) return; 
-    
-    try {
-        const profile = await supabase.selectSingle('profiles', 'high_score', `id=eq.${currentUser.id}`);
-        if (profile && typeof profile.high_score === 'number') {
-            if (userBalance !== profile.high_score) {
-                const diff = profile.high_score - userBalance;
-                
-                // Apply the new balance to the UI
-                userBalance = profile.high_score;
-                updateBalanceDisplay();
-                
-                // Show a nice popup if they received a gift!
-                if (diff > 0) {
-                    showToast(`You received ${diff} Astraphobia coins!`, 'success');
-                }
-            }
-        }
-    } catch(e) {
-        // Silently ignore background fetch errors to prevent console spam
-    }
-}, 8000);
-
