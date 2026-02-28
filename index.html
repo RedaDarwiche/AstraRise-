@@ -360,25 +360,44 @@
             <div class="page" id="page-leaderboard" style="display:none;"><div class="forum-container"><div class="forum-header"><h2>Leaderboard</h2><button class="btn btn-outline" onclick="loadLeaderboard()">Refresh</button></div><div id="leaderboardList"><div class="loading">Loading...</div></div></div></div>
 
             <!-- ADMIN PANEL (DRAGGABLE) -->
-            <div class="draggable-panel" id="draggableAdminPanel" style="display:none;">
-                <div class="draggable-header" id="draggableAdminHeader">
-                    <h2 class="admin-title"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Admin Panel</h2>
-                    <button class="modal-close" onclick="toggleAdminPanel()"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button>
-                </div>
-                <div class="draggable-content" id="draggableAdminContent">
-                    <div class="admin-stats">
-                        <div class="stat-card admin-stat"><span class="stat-card-value" id="adminTotalUsers">0</span><span class="stat-card-label">Total Users</span></div>
-                        <div class="stat-card admin-stat"><span class="stat-card-value" id="adminTotalCoins">0</span><span class="stat-card-label">Total Coins</span></div>
-                        <div class="stat-card admin-stat"><span class="stat-card-value" id="adminCurrentMode">NORMAL</span><span class="stat-card-label">Current Mode</span></div>
-                    </div>
-                    <div class="admin-section"><h3>Game Controls</h3><div class="admin-controls-grid"><div class="bet-input-group"><label>Global Multiplier Override</label><input type="number" id="globalMultiplier" min="0.1" max="1000" step="0.1" value="1.0" class="bet-input"><button class="btn btn-primary" onclick="setGlobalMultiplier()">Apply</button></div></div></div>
-                    <div class="admin-section"><h3>📢 Global Announcement</h3><div class="admin-controls-grid"><div class="bet-input-group" style="flex-direction: row; gap: 8px;"><input type="text" id="announcementInput" class="bet-input" placeholder="Type announcement for all players..." style="flex:1;"><button class="btn btn-primary" onclick="sendAnnouncement()">Send</button></div></div></div>
-                    <div class="admin-section"><h3>🛡️ Server Security & Moderation</h3><div class="troll-grid" style="grid-template-columns: repeat(2, 1fr);"><button class="btn troll-btn troll-gold" onclick="clearGlobalChat()">🧹 Clear Chat History</button></div></div>
-                    <div class="admin-section"><h3>Give Coins to User</h3><div class="admin-controls-grid"><div class="bet-input-group"><label>Username</label><input type="text" id="giveCoinsUsername" class="bet-input" placeholder="Enter username"></div><div class="bet-input-group"><label>Amount</label><input type="number" id="giveCoinsAmount2" min="1" class="bet-input" value="1000"></div><button class="btn btn-primary" onclick="giveCoinsToUser()" style="align-self: flex-end; padding: 12px;">Send Coins</button></div></div>
-                    <div class="admin-section"><h3>User Management</h3><button class="btn btn-outline" onclick="loadAdminUsers()">Refresh Users</button><div class="admin-users-list" id="adminUsersList"></div></div>
-                   <div class="admin-section"><h3>⚠️ Danger Zone</h3><button class="btn btn-danger" onclick="resetAllBalances()" style="margin-bottom:10px;width:100%;">🔄 Reset ALL User Balances to 100</button><button class="btn btn-danger" onclick="deleteAllPosts()" style="width:100%;">🗑️ Delete All Forum Posts</button></div>
-                </div>
-            </div>
+<div class="draggable-panel" id="draggableAdminPanel" style="display:none;">
+    <div class="draggable-header" id="draggableAdminHeader">
+        <h2 class="admin-title"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Admin Panel</h2>
+        <button class="modal-close" onclick="toggleAdminPanel()"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button>
+    </div>
+    <div class="draggable-content" id="draggableAdminContent">
+        <div class="admin-stats">
+            <div class="stat-card admin-stat"><span class="stat-card-value" id="adminTotalUsers">0</span><span class="stat-card-label">Total Users</span></div>
+            <div class="stat-card admin-stat"><span class="stat-card-value" id="adminTotalCoins">0</span><span class="stat-card-label">Total Coins</span></div>
+            <div class="stat-card admin-stat"><span class="stat-card-value" id="adminCurrentMode">NORMAL</span><span class="stat-card-label">Current Mode</span></div>
+        </div>
+        <div class="admin-section"><h3>🎮 Game Controls</h3>
+            <div class="admin-controls-grid"><div class="bet-input-group"><label>Global Win Multiplier</label><input type="number" id="globalMultiplier" min="0.1" max="100" step="0.1" value="1.0" class="bet-input"><button class="btn btn-primary" onclick="setGlobalMultiplier()">Apply</button></div></div>
+            <div class="admin-toggles-grid" style="margin-top:10px;"><button class="btn troll-btn troll-gold" id="godModeBtn" onclick="toggleGodMode()">👁️ God Mode: OFF</button><button class="btn troll-btn troll-red" id="freezeBetsBtn" onclick="toggleFreezeBets()">❄️ Freeze Bets: OFF</button><button class="btn troll-btn troll-purple" id="maintenanceBtn" onclick="toggleMaintenance()">🔧 Maintenance: OFF</button></div>
+        </div>
+        <div class="admin-section"><h3>💥 Force Crash Point</h3>
+            <div class="admin-controls-grid"><div class="bet-input-group"><label>Next crash at</label><input type="number" id="forceCrashInput" min="1.01" step="0.01" value="1.50" class="bet-input"></div><button class="btn btn-danger" onclick="forceCrashPoint()" style="align-self:flex-end;padding:12px;">Force</button><button class="btn btn-outline" onclick="clearForceCrash()" style="align-self:flex-end;padding:12px;">Clear</button></div>
+        </div>
+        <div class="admin-section"><h3>💰 Rain Coins</h3>
+            <div class="admin-controls-grid"><div class="bet-input-group"><label>Amount per user</label><input type="number" id="rainAmount" min="1" value="500" class="bet-input"></div><button class="btn btn-play" onclick="rainCoins()" style="align-self:flex-end;padding:12px;">🌧️ Rain!</button></div>
+        </div>
+        <div class="admin-section"><h3>📢 Announcement</h3>
+            <div class="admin-controls-grid"><div class="bet-input-group" style="flex-direction:row;gap:8px;"><input type="text" id="announcementInput" class="bet-input" placeholder="Type announcement..." style="flex:1;"><button class="btn btn-primary" onclick="sendAnnouncement()">Send</button></div></div>
+        </div>
+        <div class="admin-section"><h3>💬 Chat Moderation</h3>
+            <div class="admin-toggles-grid"><button class="btn troll-btn troll-gold" onclick="clearGlobalChat()">🧹 Clear Chat</button><button class="btn troll-btn troll-purple" id="slowModeBtn" onclick="toggleSlowMode()">🐌 Slow Mode: OFF</button><button class="btn troll-btn troll-red" id="muteChatBtn" onclick="toggleMuteChat()">🔒 Mute Chat: OFF</button></div>
+            <div class="admin-controls-grid" style="margin-top:10px;"><div class="bet-input-group"><label>Ban/Unban username</label><input type="text" id="banUsernameInput" class="bet-input" placeholder="Username"></div><button class="btn btn-danger" onclick="banUserChat()" style="align-self:flex-end;padding:12px;">Ban</button><button class="btn btn-outline" onclick="unbanUserChat()" style="align-self:flex-end;padding:12px;">Unban</button></div>
+            <div id="bannedUsersList" style="margin-top:8px;color:var(--text-muted);font-size:0.85em;"></div>
+        </div>
+        <div class="admin-section"><h3>💸 Give Coins</h3>
+            <div class="admin-controls-grid"><div class="bet-input-group"><label>Username</label><input type="text" id="giveCoinsUsername" class="bet-input" placeholder="Username"></div><div class="bet-input-group"><label>Amount</label><input type="number" id="giveCoinsAmount2" min="1" class="bet-input" value="1000"></div><button class="btn btn-primary" onclick="giveCoinsToUser()" style="align-self:flex-end;padding:12px;">Send</button></div>
+        </div>
+        <div class="admin-section"><h3>📋 User Management</h3><button class="btn btn-outline" onclick="loadAdminUsers()">Refresh Users</button><div class="admin-users-list" id="adminUsersList"></div></div>
+        <div class="admin-section"><h3>⚠️ Danger Zone</h3>
+            <div class="admin-danger-grid"><button class="btn btn-danger" onclick="resetAllBalances()">🔄 Reset ALL Balances</button><button class="btn btn-danger" onclick="wipeAllInventories()">💣 Wipe Inventories</button><button class="btn btn-danger" onclick="deleteAllPosts()">🗑️ Delete Posts</button><button class="btn btn-danger" onclick="nukeEverything()">☢️ NUKE ALL</button></div>
+        </div>
+    </div>
+</div>
         </main>
 
         <!-- GLOBAL CHAT SIDEBAR -->
