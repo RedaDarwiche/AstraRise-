@@ -1,4 +1,4 @@
-// Dice Game
+// Dice Game - Potential Profit section REMOVED
 function updateDiceInfo() {
     const target = parseInt(document.getElementById('diceTarget').value);
     const slider = document.getElementById('diceTarget');
@@ -10,16 +10,11 @@ function updateDiceInfo() {
     const multiplier = 99 / (target - 1);
     document.getElementById('diceMultiplier').textContent = multiplier.toFixed(2) + 'x';
     document.getElementById('diceChance').textContent = (target - 1) + '%';
-
-    const bet = parseFloat(document.getElementById('diceBet').value) || 0;
-    const profit = (bet * multiplier - bet).toFixed(2);
-    document.getElementById('dicePotentialProfit').textContent = profit;
 }
 
 async function playDice() {
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
 
-    // FREEZE CHECK
     if (window.serverMode === 'freeze_bets') {
         showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
         return;
@@ -36,24 +31,19 @@ async function playDice() {
     totalWagered += bet;
     playBetSound();
 
-    // Generate result
     let result = Math.random() * 100;
-
-    // Check baseline win
     let isWin = result < target;
 
-    // Apply troll logic
     const tResult = handleTrollResult(isWin, multiplier, bet);
-    if (tResult.frozen) return; // double check
+    if (tResult.frozen) return;
 
     isWin = tResult.win;
     const effectiveMultiplier = tResult.multiplier;
 
-    // Adjust visual result to match forced outcome if needed
     if (isWin && result >= target) {
-        result = Math.random() * (target - 1); // Force winning number
+        result = Math.random() * (target - 1);
     } else if (!isWin && result < target) {
-        result = target + Math.random() * (99 - target); // Force losing number
+        result = target + Math.random() * (99 - target);
     }
 
     result = parseFloat(result.toFixed(2));
@@ -61,7 +51,6 @@ async function playDice() {
     const resultEl = document.getElementById('diceResult');
     const labelEl = document.getElementById('diceResultLabel');
 
-    // Animate result
     let animCount = 0;
     const animInterval = setInterval(() => {
         resultEl.textContent = (Math.random() * 100).toFixed(2);
@@ -71,25 +60,22 @@ async function playDice() {
             resultEl.textContent = result.toFixed(2);
 
             if (isWin) {
-                // Win
                 resultEl.className = 'dice-result-number win';
                 playCashoutSound();
                 const winAmount = Math.floor(bet * effectiveMultiplier);
                 updateBalance(userBalance + winAmount);
                 totalWins++;
-                labelEl.textContent = `You won ${winAmount} coins!`;
-                showToast(`Won ${winAmount} Astraphobia!`, 'success');
+                labelEl.textContent = `You won ${winAmount.toLocaleString()} coins!`;
+                showToast(`Won ${winAmount.toLocaleString()} Astraphobia!`, 'success');
             } else {
-                // Lose
                 resultEl.className = 'dice-result-number lose';
                 labelEl.textContent = 'You lost!';
-                showToast(`Lost ${bet} Astraphobia`, 'error');
+                showToast(`Lost ${bet.toLocaleString()} Astraphobia`, 'error');
             }
         }
     }, 50);
 }
 
-// Initialize dice slider
 document.addEventListener('DOMContentLoaded', () => {
     updateDiceInfo();
 });
