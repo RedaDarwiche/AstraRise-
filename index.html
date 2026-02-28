@@ -20,60 +20,46 @@
         </div>
         <div class="nav-center">
             <button class="nav-btn" onclick="navigateTo('home')">
-                <svg viewBox="0 0 24 24" width="18" height="18">
-                    <path
-                        d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10"
-                        stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                </svg>
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 Home
             </button>
             <button class="nav-btn" onclick="navigateTo('forum')">
-                <svg viewBox="0 0 24 24" width="18" height="18">
-                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" fill="none"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 Forum
             </button>
             <button class="nav-btn" id="profileNavBtn" onclick="navigateTo('profile')" style="display:none;">
-                <svg viewBox="0 0 24 24" width="18" height="18">
-                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"
-                        stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                </svg>
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 Profile
             </button>
             <button class="nav-btn" onclick="navigateTo('leaderboard')">
-                <svg viewBox="0 0 24 24" width="18" height="18">
-                    <path
-                        d="M12 15l-5.878 3.09 1.123-6.545L2.489 6.91l6.572-.955L12 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"
-                        stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                </svg>
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 15l-5.878 3.09 1.123-6.545L2.489 6.91l6.572-.955L12 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 Leaderboard
             </button>
             <button class="nav-btn" onclick="navigateTo('shop')">
-                <svg viewBox="0 0 24 24" width="18" height="18">
-                    <path d="M6 2L3 8h18l-3-6H6zM3 8v12a2 2 0 002 2h14a2 2 0 002-2V8" stroke="currentColor" fill="none"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M12 12v4M10 14h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 2L3 8h18l-3-6H6zM3 8v12a2 2 0 002 2h14a2 2 0 002-2V8" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 12v4M10 14h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 Shop
+            </button>
+            <button class="nav-btn" id="inventoryNavBtn" onclick="navigateTo('inventory')" style="display:none;">
+                <svg viewBox="0 0 24 24" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" fill="none" stroke-width="2"/><path d="M16 7V5a4 4 0 00-8 0v2" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+                Inventory
+            </button>
+            <button class="nav-btn" id="donateNavBtn" onclick="showModal('donateModal')" style="display:none;">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor" stroke="none"/></svg>
+                Donate
             </button>
         </div>
         <div class="nav-right">
             <div class="balance-display" id="balanceDisplay" style="display:none;">
-                <svg viewBox="0 0 24 24" width="18" height="18">
-                    <circle cx="12" cy="12" r="10" fill="#ffa502" /><text x="12" y="16" text-anchor="middle"
-                        font-size="12" font-weight="bold" fill="#0a0a1a">A</text>
-                </svg>
+                <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="10" fill="#ffa502"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="#0a0a1a">A</text></svg>
                 <span id="balanceAmount">0</span>
             </div>
+            <!-- VAULT BUTTON -->
+            <button class="vault-btn" id="vaultBtn" onclick="showModal('vaultModal')" style="display:none;">
+                <svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" fill="none" stroke-width="2"/><path d="M7 7V5a5 5 0 0110 0v2" stroke="currentColor" fill="none" stroke-width="2"/><circle cx="12" cy="14" r="2" fill="currentColor"/></svg>
+                <span id="vaultBtnText">Vault</span>
+            </button>
             <button class="daily-btn" id="dailyBtn" onclick="claimDaily()" style="display:none;">
-                <svg viewBox="0 0 24 24" width="16" height="16">
-                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" fill="none"
-                        stroke-width="2" />
-                </svg>
+                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" fill="none" stroke-width="2"/></svg>
                 <span id="dailyBtnText">Claim Daily</span>
             </button>
             <div id="authButtons">
@@ -101,101 +87,53 @@
         <!-- SIDEBAR -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <svg viewBox="0 0 24 24" width="20" height="20">
-                    <path
-                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                        fill="currentColor" />
-                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" fill="none" stroke-width="2" />
-                </svg>
+                <svg viewBox="0 0 24 24" width="20" height="20"><path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" fill="currentColor"/><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" fill="none" stroke-width="2"/></svg>
                 Games
             </div>
             <div class="game-list">
                 <button class="game-item" onclick="navigateTo('dice')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="#a29bfe" stroke-width="2" />
-                        <circle cx="8" cy="8" r="1.5" fill="#a29bfe" />
-                        <circle cx="16" cy="8" r="1.5" fill="#a29bfe" />
-                        <circle cx="12" cy="12" r="1.5" fill="#a29bfe" />
-                        <circle cx="8" cy="16" r="1.5" fill="#a29bfe" />
-                        <circle cx="16" cy="16" r="1.5" fill="#a29bfe" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="3" width="18" height="18" rx="3" fill="none" stroke="#a29bfe" stroke-width="2"/><circle cx="8" cy="8" r="1.5" fill="#a29bfe"/><circle cx="16" cy="8" r="1.5" fill="#a29bfe"/><circle cx="12" cy="12" r="1.5" fill="#a29bfe"/><circle cx="8" cy="16" r="1.5" fill="#a29bfe"/><circle cx="16" cy="16" r="1.5" fill="#a29bfe"/></svg>
                     <span>Dice</span>
                 </button>
                 <button class="game-item" onclick="navigateTo('crash')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <polyline points="3,18 9,13 13,15 21,6" fill="none" stroke="#a29bfe" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                        <polyline points="16,6 21,6 21,11" fill="none" stroke="#a29bfe" stroke-width="2"
-                            stroke-linecap="round" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><polyline points="3,18 9,13 13,15 21,6" fill="none" stroke="#a29bfe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16,6 21,6 21,11" fill="none" stroke="#a29bfe" stroke-width="2" stroke-linecap="round"/></svg>
                     <span>Crash</span>
                 </button>
                 <button class="game-item" onclick="navigateTo('mines')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <circle cx="12" cy="12" r="6" fill="none" stroke="#a29bfe" stroke-width="1.5" />
-                        <line x1="12" y1="3" x2="12" y2="6" stroke="#a29bfe" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <line x1="12" y1="18" x2="12" y2="21" stroke="#a29bfe" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <line x1="3" y1="12" x2="6" y2="12" stroke="#a29bfe" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <line x1="18" y1="12" x2="21" y2="12" stroke="#a29bfe" stroke-width="1.5"
-                            stroke-linecap="round" />
-                        <circle cx="12" cy="12" r="2" fill="#6c5ce7" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="6" fill="none" stroke="#a29bfe" stroke-width="1.5"/><line x1="12" y1="3" x2="12" y2="6" stroke="#a29bfe" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="21" stroke="#a29bfe" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="12" x2="6" y2="12" stroke="#a29bfe" stroke-width="1.5" stroke-linecap="round"/><line x1="18" y1="12" x2="21" y2="12" stroke="#a29bfe" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="#6c5ce7"/></svg>
                     <span>Mines</span>
                 </button>
                 <button class="game-item" onclick="navigateTo('blackjack')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <rect x="4" y="3" width="12" height="17" rx="2" fill="none" stroke="#a29bfe"
-                            stroke-width="1.5" /><text x="10" y="14" text-anchor="middle" font-size="10"
-                            font-weight="bold" fill="#a29bfe">A</text>
-                        <rect x="8" y="5" width="12" height="17" rx="2" fill="none" stroke="#6c5ce7"
-                            stroke-width="1.5" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><rect x="4" y="3" width="12" height="17" rx="2" fill="none" stroke="#a29bfe" stroke-width="1.5"/><text x="10" y="14" text-anchor="middle" font-size="10" font-weight="bold" fill="#a29bfe">A</text><rect x="8" y="5" width="12" height="17" rx="2" fill="none" stroke="#6c5ce7" stroke-width="1.5"/></svg>
                     <span>Blackjack</span>
                 </button>
                 <button class="game-item" onclick="navigateTo('limbo')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <path d="M4 20l4-8 4 4 4-12 4 16" stroke="#a29bfe" fill="none" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 20l4-8 4 4 4-12 4 16" stroke="#a29bfe" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <span>Limbo</span>
                 </button>
                 <button class="game-item" onclick="navigateTo('hilo')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <path d="M12 4l6 8H6z" fill="#a29bfe" opacity="0.85" />
-                        <path d="M12 20l6-8H6z" fill="#6c5ce7" opacity="0.85" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 4l6 8H6z" fill="#a29bfe" opacity="0.85"/><path d="M12 20l6-8H6z" fill="#6c5ce7" opacity="0.85"/></svg>
                     <span>Hi-Lo</span>
                 </button>
                 <button class="game-item" onclick="navigateTo('coinflip')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <circle cx="12" cy="12" r="9" fill="none" stroke="#a29bfe" stroke-width="1.5" /><text x="12"
-                            y="16" text-anchor="middle" font-size="11" font-weight="bold" fill="#a29bfe">A</text>
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" fill="none" stroke="#a29bfe" stroke-width="1.5"/><text x="12" y="16" text-anchor="middle" font-size="11" font-weight="bold" fill="#a29bfe">A</text></svg>
                     <span>Coin Flip</span>
                 </button>
                 <button class="game-item" onclick="navigateTo('keno')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <rect x="3" y="3" width="8" height="8" rx="1" fill="none" stroke="#a29bfe" stroke-width="1.5" />
-                        <rect x="13" y="3" width="8" height="8" rx="1" fill="none" stroke="#a29bfe"
-                            stroke-width="1.5" />
-                        <rect x="3" y="13" width="8" height="8" rx="1" fill="#6c5ce7" stroke="#a29bfe"
-                            stroke-width="1.5" />
-                        <rect x="13" y="13" width="8" height="8" rx="1" fill="none" stroke="#a29bfe"
-                            stroke-width="1.5" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="3" width="8" height="8" rx="1" fill="none" stroke="#a29bfe" stroke-width="1.5"/><rect x="13" y="3" width="8" height="8" rx="1" fill="none" stroke="#a29bfe" stroke-width="1.5"/><rect x="3" y="13" width="8" height="8" rx="1" fill="#6c5ce7" stroke="#a29bfe" stroke-width="1.5"/><rect x="13" y="13" width="8" height="8" rx="1" fill="none" stroke="#a29bfe" stroke-width="1.5"/></svg>
                     <span>Keno</span>
                 </button>
-                </button>
                 <button class="game-item" onclick="navigateTo('towers')">
-                    <svg viewBox="0 0 24 24" width="22" height="22">
-                        <rect x="4" y="16" width="5" height="6" rx="1" fill="#a29bfe" />
-                        <rect x="10" y="10" width="5" height="12" rx="1" fill="#6c5ce7" />
-                        <rect x="16" y="4" width="5" height="18" rx="1" fill="#a29bfe" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="22" height="22"><rect x="4" y="16" width="5" height="6" rx="1" fill="#a29bfe"/><rect x="10" y="10" width="5" height="12" rx="1" fill="#6c5ce7"/><rect x="16" y="4" width="5" height="18" rx="1" fill="#a29bfe"/></svg>
                     <span>Towers</span>
+                </button>
+                <button class="game-item" onclick="navigateTo('roulette')">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" fill="none" stroke="#a29bfe" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="#6c5ce7" stroke-width="1.5"/><circle cx="12" cy="5" r="1.5" fill="#ff4757"/><circle cx="17" cy="9" r="1.5" fill="#2d3436"/><circle cx="17" cy="15" r="1.5" fill="#00b894"/><circle cx="12" cy="19" r="1.5" fill="#ff4757"/><circle cx="7" cy="15" r="1.5" fill="#2d3436"/><circle cx="7" cy="9" r="1.5" fill="#ff4757"/></svg>
+                    <span>Roulette</span>
+                </button>
+                <button class="game-item" onclick="navigateTo('cases')">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="7" width="20" height="14" rx="2" fill="none" stroke="#a29bfe" stroke-width="1.5"/><path d="M16 7V5a4 4 0 00-8 0v2" stroke="#a29bfe" fill="none" stroke-width="1.5"/><line x1="12" y1="11" x2="12" y2="17" stroke="#6c5ce7" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="14" x2="15" y2="14" stroke="#6c5ce7" stroke-width="2" stroke-linecap="round"/></svg>
+                    <span>Case Battle</span>
                 </button>
             </div>
         </aside>
@@ -213,7 +151,7 @@
                             <span class="stat-label">Players</span>
                         </div>
                         <div class="hero-stat">
-                            <span class="stat-value">9</span>
+                            <span class="stat-value">11</span>
                             <span class="stat-label">Games</span>
                         </div>
                         <div class="hero-stat">
@@ -225,292 +163,306 @@
                 <h2 class="section-title">Choose Your Game</h2>
                 <div class="games-grid">
                     <div class="game-card" onclick="navigateTo('dice')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <rect x="6" y="6" width="36" height="36" rx="6" fill="#1e1e42" stroke="#6c5ce7"
-                                    stroke-width="2" />
-                                <circle cx="16" cy="16" r="3" fill="#a29bfe" />
-                                <circle cx="32" cy="16" r="3" fill="#a29bfe" />
-                                <circle cx="24" cy="24" r="3" fill="#a29bfe" />
-                                <circle cx="16" cy="32" r="3" fill="#a29bfe" />
-                                <circle cx="32" cy="32" r="3" fill="#a29bfe" />
-                            </svg>
-                        </div>
-                        <h3>Dice</h3>
-                        <p>Roll under your target to win</p>
-                        <span class="game-edge">1% Edge</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><rect x="6" y="6" width="36" height="36" rx="6" fill="#1e1e42" stroke="#6c5ce7" stroke-width="2"/><circle cx="16" cy="16" r="3" fill="#a29bfe"/><circle cx="32" cy="16" r="3" fill="#a29bfe"/><circle cx="24" cy="24" r="3" fill="#a29bfe"/><circle cx="16" cy="32" r="3" fill="#a29bfe"/><circle cx="32" cy="32" r="3" fill="#a29bfe"/></svg></div>
+                        <h3>Dice</h3><p>Roll under your target to win</p><span class="game-edge">1% Edge</span>
                     </div>
                     <div class="game-card" onclick="navigateTo('crash')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <polyline points="6,38 18,28 26,32 42,8" fill="none" stroke="#a29bfe" stroke-width="2.5"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                                <polyline points="34,8 42,8 42,16" fill="none" stroke="#a29bfe" stroke-width="2.5"
-                                    stroke-linecap="round" />
-                                <circle cx="42" cy="8" r="3" fill="#6c5ce7" />
-                            </svg>
-                        </div>
-                        <h3>Crash</h3>
-                        <p>Cash out before it crashes</p>
-                        <span class="game-edge">Variable</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><polyline points="6,38 18,28 26,32 42,8" fill="none" stroke="#a29bfe" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="34,8 42,8 42,16" fill="none" stroke="#a29bfe" stroke-width="2.5" stroke-linecap="round"/><circle cx="42" cy="8" r="3" fill="#6c5ce7"/></svg></div>
+                        <h3>Crash</h3><p>Cash out before it crashes</p><span class="game-edge">Variable</span>
                     </div>
                     <div class="game-card" onclick="navigateTo('mines')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <circle cx="24" cy="24" r="12" fill="#6c5ce7" opacity="0.15" stroke="#a29bfe"
-                                    stroke-width="2" />
-                                <line x1="24" y1="6" x2="24" y2="12" stroke="#a29bfe" stroke-width="2"
-                                    stroke-linecap="round" />
-                                <line x1="24" y1="36" x2="24" y2="42" stroke="#a29bfe" stroke-width="2"
-                                    stroke-linecap="round" />
-                                <line x1="6" y1="24" x2="12" y2="24" stroke="#a29bfe" stroke-width="2"
-                                    stroke-linecap="round" />
-                                <line x1="36" y1="24" x2="42" y2="24" stroke="#a29bfe" stroke-width="2"
-                                    stroke-linecap="round" />
-                                <circle cx="24" cy="24" r="4" fill="#6c5ce7" />
-                            </svg>
-                        </div>
-                        <h3>Mines</h3>
-                        <p>Navigate the minefield</p>
-                        <span class="game-edge">Progressive</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="12" fill="#6c5ce7" opacity="0.15" stroke="#a29bfe" stroke-width="2"/><line x1="24" y1="6" x2="24" y2="12" stroke="#a29bfe" stroke-width="2" stroke-linecap="round"/><line x1="24" y1="36" x2="24" y2="42" stroke="#a29bfe" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="24" x2="12" y2="24" stroke="#a29bfe" stroke-width="2" stroke-linecap="round"/><line x1="36" y1="24" x2="42" y2="24" stroke="#a29bfe" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="24" r="4" fill="#6c5ce7"/></svg></div>
+                        <h3>Mines</h3><p>Navigate the minefield</p><span class="game-edge">Progressive</span>
                     </div>
                     <div class="game-card" onclick="navigateTo('blackjack')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <rect x="8" y="6" width="20" height="28" rx="3" fill="#6c5ce7" opacity="0.12"
-                                    stroke="#a29bfe" stroke-width="2" /><text x="18" y="24" text-anchor="middle"
-                                    font-size="14" font-weight="bold" fill="#a29bfe">A</text>
-                                <rect x="20" y="14" width="20" height="28" rx="3" fill="#6c5ce7" opacity="0.12"
-                                    stroke="#6c5ce7" stroke-width="2" /><text x="30" y="32" text-anchor="middle"
-                                    font-size="14" font-weight="bold" fill="#6c5ce7">K</text>
-                            </svg>
-                        </div>
-                        <h3>Blackjack</h3>
-                        <p>Beat the dealer to 21</p>
-                        <span class="game-edge">Classic</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><rect x="8" y="6" width="20" height="28" rx="3" fill="#6c5ce7" opacity="0.12" stroke="#a29bfe" stroke-width="2"/><text x="18" y="24" text-anchor="middle" font-size="14" font-weight="bold" fill="#a29bfe">A</text><rect x="20" y="14" width="20" height="28" rx="3" fill="#6c5ce7" opacity="0.12" stroke="#6c5ce7" stroke-width="2"/><text x="30" y="32" text-anchor="middle" font-size="14" font-weight="bold" fill="#6c5ce7">K</text></svg></div>
+                        <h3>Blackjack</h3><p>Beat the dealer to 21</p><span class="game-edge">Classic</span>
                     </div>
-
                     <div class="game-card" onclick="navigateTo('limbo')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <path d="M8 40l8-16 8 8 8-24 8 32" stroke="#6c5ce7" fill="none" stroke-width="3"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
-                        </div>
-                        <h3>Limbo</h3>
-                        <p>Aim for the multiplier</p>
-                        <span class="game-edge">Variable</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><path d="M8 40l8-16 8 8 8-24 8 32" stroke="#6c5ce7" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <h3>Limbo</h3><p>Aim for the multiplier</p><span class="game-edge">Variable</span>
                     </div>
                     <div class="game-card" onclick="navigateTo('hilo')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <path d="M24 8l12 16H12z" fill="#a29bfe" opacity="0.85" />
-                                <path d="M24 40l12-16H12z" fill="#6c5ce7" opacity="0.85" />
-                            </svg>
-                        </div>
-                        <h3>Hi-Lo</h3>
-                        <p>Higher or lower card game</p>
-                        <span class="game-edge">Streak Based</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><path d="M24 8l12 16H12z" fill="#a29bfe" opacity="0.85"/><path d="M24 40l12-16H12z" fill="#6c5ce7" opacity="0.85"/></svg></div>
+                        <h3>Hi-Lo</h3><p>Higher or lower card game</p><span class="game-edge">Streak Based</span>
                     </div>
                     <div class="game-card" onclick="navigateTo('coinflip')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <circle cx="24" cy="24" r="16" fill="none" stroke="#a29bfe" stroke-width="2.5" /><text
-                                    x="24" y="30" text-anchor="middle" font-size="18" font-weight="bold"
-                                    fill="#a29bfe">A</text>
-                            </svg>
-                        </div>
-                        <h3>Coin Flip</h3>
-                        <p>Heads or tails - 50/50</p>
-                        <span class="game-edge">1% Edge</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="16" fill="none" stroke="#a29bfe" stroke-width="2.5"/><text x="24" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#a29bfe">A</text></svg></div>
+                        <h3>Coin Flip</h3><p>Heads or tails - 50/50</p><span class="game-edge">1% Edge</span>
                     </div>
                     <div class="game-card" onclick="navigateTo('keno')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <rect x="6" y="6" width="14" height="14" rx="2" fill="none" stroke="#a29bfe"
-                                    stroke-width="2" />
-                                <rect x="28" y="6" width="14" height="14" rx="2" fill="none" stroke="#a29bfe"
-                                    stroke-width="2" />
-                                <rect x="6" y="28" width="14" height="14" rx="2" fill="#6c5ce7" stroke="#a29bfe"
-                                    stroke-width="2" />
-                                <rect x="28" y="28" width="14" height="14" rx="2" fill="none" stroke="#a29bfe"
-                                    stroke-width="2" />
-                            </svg>
-                        </div>
-                        <h3>Keno</h3>
-                        <p>Pick your lucky numbers</p>
-                        <span class="game-edge">Variable</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><rect x="6" y="6" width="14" height="14" rx="2" fill="none" stroke="#a29bfe" stroke-width="2"/><rect x="28" y="6" width="14" height="14" rx="2" fill="none" stroke="#a29bfe" stroke-width="2"/><rect x="6" y="28" width="14" height="14" rx="2" fill="#6c5ce7" stroke="#a29bfe" stroke-width="2"/><rect x="28" y="28" width="14" height="14" rx="2" fill="none" stroke="#a29bfe" stroke-width="2"/></svg></div>
+                        <h3>Keno</h3><p>Pick your lucky numbers</p><span class="game-edge">Variable</span>
                     </div>
-
                     <div class="game-card" onclick="navigateTo('towers')">
-                        <div class="game-card-icon">
-                            <svg viewBox="0 0 48 48" width="48" height="48">
-                                <rect x="8" y="32" width="10" height="12" rx="2" fill="#a29bfe" />
-                                <rect x="20" y="20" width="10" height="24" rx="2" fill="#6c5ce7" />
-                                <rect x="32" y="8" width="10" height="36" rx="2" fill="#a29bfe" />
-                            </svg>
-                        </div>
-                        <h3>Towers</h3>
-                        <p>Climb to the top</p>
-                        <span class="game-edge">Progressive</span>
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><rect x="8" y="32" width="10" height="12" rx="2" fill="#a29bfe"/><rect x="20" y="20" width="10" height="24" rx="2" fill="#6c5ce7"/><rect x="32" y="8" width="10" height="36" rx="2" fill="#a29bfe"/></svg></div>
+                        <h3>Towers</h3><p>Climb to the top</p><span class="game-edge">Progressive</span>
+                    </div>
+                    <div class="game-card" onclick="navigateTo('roulette')">
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#a29bfe" stroke-width="2"/><circle cx="24" cy="24" r="8" fill="none" stroke="#6c5ce7" stroke-width="2"/><circle cx="24" cy="8" r="3" fill="#ff4757"/><circle cx="36" cy="18" r="3" fill="#2d3436"/><circle cx="36" cy="30" r="3" fill="#00b894"/><circle cx="24" cy="40" r="3" fill="#ff4757"/><circle cx="12" cy="30" r="3" fill="#2d3436"/><circle cx="12" cy="18" r="3" fill="#ff4757"/></svg></div>
+                        <h3>Roulette</h3><p>Red, Black, or Green</p><span class="game-edge">Classic</span>
+                    </div>
+                    <div class="game-card" onclick="navigateTo('cases')">
+                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><rect x="4" y="14" width="40" height="28" rx="4" fill="#1e1e42" stroke="#a29bfe" stroke-width="2"/><path d="M16 14V10a8 8 0 0116 0v4" stroke="#6c5ce7" fill="none" stroke-width="2"/><line x1="24" y1="22" x2="24" y2="34" stroke="#6c5ce7" stroke-width="3" stroke-linecap="round"/><line x1="18" y1="28" x2="30" y2="28" stroke="#6c5ce7" stroke-width="3" stroke-linecap="round"/></svg></div>
+                        <h3>Case Battle</h3><p>Spin tags, winner takes all</p><span class="game-edge">PvP</span>
                     </div>
                 </div>
             </div>
 
-            <!-- ... (Other Game Pages are identical, no changes needed in HTML structure) ... -->
-            <div class="page" id="page-dice" style="display:none;"><div class="game-container"><div class="game-header"><h2>Dice</h2><p>Roll under your target number to win</p></div><div class="game-body"><div class="dice-result-area"><div class="dice-result-number" id="diceResult">0.00</div><div class="dice-result-label" id="diceResultLabel">Place your bet</div></div><div class="dice-slider-container"><input type="range" id="diceTarget" min="2" max="98" value="50" class="dice-slider" oninput="updateDiceInfo()"><div class="dice-marks"><span>2</span><span>25</span><span>50</span><span>75</span><span>98</span></div></div><div class="dice-info"><div class="dice-stat"><span>Target</span><span id="diceTargetDisplay">50</span></div><div class="dice-stat"><span>Multiplier</span><span id="diceMultiplier">2.02x</span></div><div class="dice-stat"><span>Win Chance</span><span id="diceChance">49%</span></div></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="diceBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('diceBet').value=Math.floor(document.getElementById('diceBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('diceBet').value=document.getElementById('diceBet').value*2">2x</button></div></div><div class="dice-stat potential"><span>Potential Profit</span><span id="dicePotentialProfit">0.00</span></div><button class="btn btn-play" onclick="playDice()">Roll Dice</button></div></div></div>
+            <!-- DICE -->
+            <div class="page" id="page-dice" style="display:none;">
+                <div class="game-container">
+                    <div class="game-header"><h2>Dice</h2><p>Roll under your target number to win</p></div>
+                    <div class="game-body">
+                        <div class="dice-result-area">
+                            <div class="dice-result-number" id="diceResult">0.00</div>
+                            <div class="dice-result-label" id="diceResultLabel">Place your bet</div>
+                        </div>
+                        <div class="dice-slider-container">
+                            <input type="range" id="diceTarget" min="2" max="98" value="50" class="dice-slider" oninput="updateDiceInfo()">
+                            <div class="dice-marks"><span>2</span><span>25</span><span>50</span><span>75</span><span>98</span></div>
+                        </div>
+                        <div class="dice-info">
+                            <div class="dice-stat"><span>Target</span><span id="diceTargetDisplay">50</span></div>
+                            <div class="dice-stat"><span>Multiplier</span><span id="diceMultiplier">2.02x</span></div>
+                            <div class="dice-stat"><span>Win Chance</span><span id="diceChance">49%</span></div>
+                        </div>
+                    </div>
+                    <div class="game-controls">
+                        <div class="bet-input-group">
+                            <label>Bet Amount</label>
+                            <div class="bet-input-wrapper">
+                                <input type="number" id="diceBet" min="1" value="10" class="bet-input">
+                                <button class="bet-btn-half" onclick="document.getElementById('diceBet').value=Math.floor(document.getElementById('diceBet').value/2)">1/2</button>
+                                <button class="bet-btn-double" onclick="document.getElementById('diceBet').value=document.getElementById('diceBet').value*2">2x</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-play" onclick="playDice()">Roll Dice</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CRASH -->
             <div class="page" id="page-crash" style="display:none;"><div class="game-container crash-multiplayer-container"><div class="game-header"><h2>Crash (Global)</h2><p>Multiplayer crash game with live bets</p></div><div class="crash-main-layout"><div class="crash-left"><div class="game-body"><div class="crash-display" id="crashDisplay"><div class="crash-multiplier" id="crashMultiplier">1.00x</div><div class="crash-status" id="crashStatus">Connecting...</div><canvas id="crashCanvas" width="500" height="250"></canvas></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="crashBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('crashBet').value=Math.floor(document.getElementById('crashBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('crashBet').value=document.getElementById('crashBet').value*2">2x</button></div></div><div class="bet-input-group"><label>Auto Cashout</label><input type="number" id="crashAutoCashout" min="1.01" step="0.01" value="2.00" class="bet-input"></div><button class="btn btn-play" id="crashBtn" onclick="toggleCrashBet()">Place Bet</button></div></div><div class="crash-bets-sidebar"><div class="crash-bets-header"><h3>Live Bets</h3><div id="totalCrashPlayers">0 Players</div></div><div class="crash-bets-list" id="crashBetsList"></div></div></div></div></div>
+
+            <!-- MINES -->
             <div class="page" id="page-mines" style="display:none;"><div class="game-container"><div class="game-header"><h2>Mines</h2><p>Avoid the mines and cash out</p></div><div class="game-body"><div class="mines-info"><div class="dice-stat"><span>Multiplier</span><span id="minesMultiplier">1.00x</span></div><div class="dice-stat"><span>Profit</span><span id="minesProfit">0.00</span></div></div><div class="mines-grid" id="minesGrid"></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="minesBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('minesBet').value=Math.floor(document.getElementById('minesBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('minesBet').value=document.getElementById('minesBet').value*2">2x</button></div></div><div class="bet-input-group"><label>Number of Mines</label><input type="number" id="minesCount" min="1" max="24" value="3" class="bet-input"></div><button class="btn btn-play" id="minesBtn" onclick="startMines()">Start Game</button><button class="btn btn-cashout" id="minesCashout" onclick="cashoutMines()" style="display:none;">Cash Out</button></div></div></div>
+
+            <!-- BLACKJACK -->
             <div class="page" id="page-blackjack" style="display:none;"><div class="game-container"><div class="game-header"><h2>Blackjack</h2><p>Beat the dealer to 21</p></div><div class="game-body"><div class="bj-table"><div class="bj-hand"><h3>Dealer <span id="bjDealerScore"></span></h3><div class="bj-cards" id="bjDealerCards"></div></div><div class="bj-result" id="bjResult"></div><div class="bj-hand"><h3>You <span id="bjPlayerScore"></span></h3><div class="bj-cards" id="bjPlayerCards"></div></div></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="bjBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('bjBet').value=Math.floor(document.getElementById('bjBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('bjBet').value=document.getElementById('bjBet').value*2">2x</button></div></div><button class="btn btn-play" id="bjDealBtn" onclick="startBlackjack()">Deal</button><div id="bjActions" style="display:none; gap: 12px; margin-top: 10px;"><button class="btn btn-play" style="flex: 1;" onclick="bjHit()">Hit</button><button class="btn btn-cashout" style="flex: 1;" onclick="bjStand()">Stand</button></div></div></div></div>
+
+            <!-- LIMBO -->
             <div class="page" id="page-limbo" style="display:none;"><div class="game-container"><div class="game-header"><h2>Limbo</h2><p>Set a target and hope the result is higher</p></div><div class="game-body"><div class="limbo-display"><div class="limbo-result" id="limboResult">0.00x</div><div class="limbo-label" id="limboLabel">Set your target</div></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="limboBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('limboBet').value=Math.floor(document.getElementById('limboBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('limboBet').value=document.getElementById('limboBet').value*2">2x</button></div></div><div class="bet-input-group"><label>Target Multiplier</label><input type="number" id="limboTarget" min="1.01" step="0.01" value="2.00" class="bet-input"></div><button class="btn btn-play" onclick="playLimbo()">Play</button></div></div></div>
-            <div class="page" id="page-hilo" style="display:none;"><div class="game-container"><div class="game-header"><h2>Hi-Lo</h2><p>Guess if the next card is higher or lower</p></div><div class="game-body"><div class="hilo-info"><div class="dice-stat"><span>Multiplier</span><span id="hiloMultiplier">1.00x</span></div><div class="dice-stat"><span>Profit</span><span id="hiloProfit">0.00</span></div></div><div class="hilo-card-area"><div class="hilo-card" id="hiloCurrentCard">?</div></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="hiloBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('hiloBet').value=Math.floor(document.getElementById('hiloBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('hiloBet').value=document.getElementById('hiloBet').value*2">2x</button></div></div><button class="btn btn-play" id="hiloStartBtn" onclick="startHilo()">Start Game</button><div id="hiloActions" style="display:none;"><button class="btn btn-primary" onclick="hiloGuess('higher')"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 4l8 12H4z" fill="currentColor" /></svg>Higher</button><button class="btn btn-danger" onclick="hiloGuess('lower')"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 20l8-12H4z" fill="currentColor" /></svg>Lower</button><button class="btn btn-cashout" onclick="hiloCashout()">Cash Out</button></div></div></div></div>
+
+            <!-- HILO -->
+            <div class="page" id="page-hilo" style="display:none;"><div class="game-container"><div class="game-header"><h2>Hi-Lo</h2><p>Guess if the next card is higher or lower</p></div><div class="game-body"><div class="hilo-info"><div class="dice-stat"><span>Multiplier</span><span id="hiloMultiplier">1.00x</span></div><div class="dice-stat"><span>Profit</span><span id="hiloProfit">0.00</span></div></div><div class="hilo-card-area"><div class="hilo-card" id="hiloCurrentCard">?</div></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="hiloBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('hiloBet').value=Math.floor(document.getElementById('hiloBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('hiloBet').value=document.getElementById('hiloBet').value*2">2x</button></div></div><button class="btn btn-play" id="hiloStartBtn" onclick="startHilo()">Start Game</button><div id="hiloActions" style="display:none;"><button class="btn btn-primary" onclick="hiloGuess('higher')"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 4l8 12H4z" fill="currentColor"/></svg>Higher</button><button class="btn btn-danger" onclick="hiloGuess('lower')"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 20l8-12H4z" fill="currentColor"/></svg>Lower</button><button class="btn btn-cashout" onclick="hiloCashout()">Cash Out</button></div></div></div></div>
+
+            <!-- COINFLIP -->
             <div class="page" id="page-coinflip" style="display:none;"><div class="game-container"><div class="game-header"><h2>Coin Flip</h2><p>Heads or Tails - choose wisely</p></div><div class="game-body"><div class="coin-container"><div class="coin" id="coin"><div class="coin-face coin-heads"><svg viewBox="0 0 60 60" width="60" height="60"><text x="30" y="40" text-anchor="middle" font-size="30" fill="#0a0a1a" font-weight="bold">H</text></svg></div><div class="coin-face coin-tails"><svg viewBox="0 0 60 60" width="60" height="60"><text x="30" y="40" text-anchor="middle" font-size="30" fill="#0a0a1a" font-weight="bold">T</text></svg></div></div></div><div class="coinflip-result" id="coinflipResult">Make your choice</div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="coinflipBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('coinflipBet').value=Math.floor(document.getElementById('coinflipBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('coinflipBet').value=document.getElementById('coinflipBet').value*2">2x</button></div></div><div class="coinflip-choices"><button class="btn btn-primary" onclick="playCoinflip('heads')">Heads (1.98x)</button><button class="btn btn-danger" onclick="playCoinflip('tails')">Tails (1.98x)</button></div></div></div></div>
+
+            <!-- KENO -->
             <div class="page" id="page-keno" style="display:none;"><div class="game-container"><div class="game-header"><h2>Keno</h2><p>Pick up to 10 numbers and match the draw</p></div><div class="game-body"><div class="keno-info"><span id="kenoSelected">Selected: 0/10</span><span id="kenoResult"></span></div><div class="keno-grid" id="kenoGrid"></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="kenoBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('kenoBet').value=Math.floor(document.getElementById('kenoBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('kenoBet').value=document.getElementById('kenoBet').value*2">2x</button></div></div><button class="btn btn-play" onclick="playKeno()">Draw Numbers</button><button class="btn btn-outline" onclick="clearKeno()">Clear Selection</button></div></div></div>
+
+            <!-- TOWERS -->
             <div class="page" id="page-towers" style="display:none;"><div class="game-container"><div class="game-header"><h2>Towers</h2><p>Climb to the top and cash out</p></div><div class="game-body"><div class="towers-info"><div class="dice-stat"><span>Multiplier</span><span id="towersMultiplier">1.00x</span></div><div class="dice-stat"><span>Profit</span><span id="towersProfit">0.00</span></div></div><div class="towers-grid" id="towersGrid"></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="towersBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('towersBet').value=Math.floor(document.getElementById('towersBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('towersBet').value=document.getElementById('towersBet').value*2">2x</button></div></div><div class="bet-input-group"><label>Difficulty</label><select id="towersDifficulty" class="bet-input"><option value="easy">Easy (1/3 mine)</option><option value="medium" selected>Medium (1/2 mine)</option><option value="hard">Hard (2/4 mine)</option></select></div><button class="btn btn-play" id="towersBtn" onclick="startTowers()">Start Game</button><button class="btn btn-cashout" id="towersCashout" onclick="cashoutTowers()" style="display:none;">Cash Out</button></div></div></div>
-            <div class="page" id="page-forum" style="display:none;"> <!-- ... (Forum structure maintained) ... --> <div class="forum-container"><div class="forum-header"><h2>Community Forum</h2><button class="btn btn-primary" onclick="showModal('createPostModal')" id="createPostBtn" style="display:none;"><svg viewBox="0 0 24 24" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" /><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" /></svg>New Post</button></div><div class="forum-categories"><button class="category-btn active" onclick="filterForum('all')">All</button><button class="category-btn" onclick="filterForum('general')">General</button><button class="category-btn" onclick="filterForum('strategies')">Strategies</button><button class="category-btn" onclick="filterForum('big-wins')">Big Wins</button><button class="category-btn" onclick="filterForum('bug-reports')">Bug Reports</button><button class="category-btn" onclick="filterForum('suggestions')">Suggestions</button></div><div class="forum-posts" id="forumPosts"><div class="loading">Loading posts...</div></div></div></div>
-            <div class="page" id="page-post-detail" style="display:none;"> <!-- ... (Post Detail structure maintained) ... --> <div class="forum-container"><button class="btn btn-outline" onclick="navigateTo('forum')"><svg viewBox="0 0 24 24" width="16" height="16"><polyline points="15 18 9 12 15 6" stroke="currentColor" fill="none" stroke-width="2" /></svg>Back to Forum</button><div id="postDetailContent"></div><div class="comments-section"><h3>Comments</h3><div id="commentForm" style="display:none;"><textarea id="commentInput" class="forum-textarea" placeholder="Write a comment..." rows="3"></textarea><button class="btn btn-primary" onclick="submitComment()">Post Comment</button></div><div id="commentsList"></div></div></div></div>
-            <div class="page" id="page-profile" style="display:none;"> <!-- ... (Profile structure maintained) ... --> <div class="profile-container"><div class="profile-card"><div class="profile-avatar" id="profileAvatar">?</div><h2 id="profileUsername">Username</h2><p class="profile-email" id="profileEmail">email@example.com</p><div class="profile-balance"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#ffa502" /><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="#0a0a1a">A</text></svg><span id="profileBalance">0</span><span class="balance-label">Astraphobia</span></div></div><div class="profile-stats"><div class="stat-card"><span class="stat-card-value" id="profileWins">0</span><span class="stat-card-label">Total Wins</span></div><div class="stat-card"><span class="stat-card-value" id="profileWagered">0</span><span class="stat-card-label">Total Wagered</span></div><div class="stat-card"><span class="stat-card-value" id="profileHighScore">0</span><span class="stat-card-label">High Score</span></div></div><div class="profile-edit"><h3>Edit Profile</h3><div class="bet-input-group"><label>Username (min 3 characters)</label><input type="text" id="editUsername" class="bet-input" minlength="3"></div><button class="btn btn-primary" onclick="updateUsername()">Save Username</button></div></div></div>
-            <div class="page" id="page-shop" style="display:none;"> <!-- ... (Shop structure maintained) ... --> <div class="forum-container"><div class="forum-header"><h2>Rank Shop</h2><p style="color: var(--text-muted); margin: 0;">Buy tags to stand out everywhere</p></div><div id="shopItems" class="shop-grid"><div class="loading">Loading shop...</div></div></div></div>
-            <div class="page" id="page-leaderboard" style="display:none;"> <!-- ... (Leaderboard structure maintained) ... --> <div class="forum-container"><div class="forum-header"><h2>Leaderboard</h2><button class="btn btn-outline" onclick="loadLeaderboard()">Refresh</button></div><div id="leaderboardList"><div class="loading">Loading...</div></div></div></div>
+
+            <!-- ROULETTE -->
+            <div class="page" id="page-roulette" style="display:none;">
+                <div class="game-container">
+                    <div class="game-header"><h2>Roulette</h2><p>Pick Red, Black, or Green</p></div>
+                    <div class="game-body">
+                        <div class="roulette-visual">
+                            <div class="roulette-spin-area">
+                                <div class="roulette-pointer-arrow">▼</div>
+                                <div class="roulette-track" id="rouletteTrack"></div>
+                            </div>
+                            <div class="roulette-last-results" id="rouletteHistory"></div>
+                        </div>
+                        <div class="roulette-result" id="rouletteResult">Place your bet</div>
+                    </div>
+                    <div class="game-controls">
+                        <div class="bet-input-group">
+                            <label>Bet Amount</label>
+                            <div class="bet-input-wrapper">
+                                <input type="number" id="rouletteBet" min="1" value="10" class="bet-input">
+                                <button class="bet-btn-half" onclick="document.getElementById('rouletteBet').value=Math.floor(document.getElementById('rouletteBet').value/2)">1/2</button>
+                                <button class="bet-btn-double" onclick="document.getElementById('rouletteBet').value=document.getElementById('rouletteBet').value*2">2x</button>
+                            </div>
+                        </div>
+                        <div class="roulette-bets">
+                            <button class="btn roulette-red" onclick="playRoulette('red')">Red (2x)</button>
+                            <button class="btn roulette-green" onclick="playRoulette('green')">Green (14x)</button>
+                            <button class="btn roulette-black" onclick="playRoulette('black')">Black (2x)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CASE BATTLE -->
+            <div class="page" id="page-cases" style="display:none;">
+                <div class="game-container" style="max-width:900px;">
+                    <div class="game-header"><h2>Case Battle</h2><p>Both players spin — highest tag value wins everything!</p></div>
+                    <div class="game-body">
+                        <div class="case-battle-area">
+                            <div class="case-player-col">
+                                <h3>You</h3>
+                                <div class="case-spin-reel" id="caseReelLeft"></div>
+                                <div class="case-result-tag" id="caseResultLeft"></div>
+                            </div>
+                            <div class="case-vs">VS</div>
+                            <div class="case-player-col">
+                                <h3>Bot</h3>
+                                <div class="case-spin-reel" id="caseReelRight"></div>
+                                <div class="case-result-tag" id="caseResultRight"></div>
+                            </div>
+                        </div>
+                        <div class="case-battle-result" id="caseBattleResult"></div>
+                    </div>
+                    <div class="game-controls">
+                        <div class="bet-input-group">
+                            <label>Case Cost (both players pay)</label>
+                            <div class="bet-input-wrapper">
+                                <input type="number" id="caseBet" min="50" value="100" class="bet-input">
+                                <button class="bet-btn-half" onclick="document.getElementById('caseBet').value=Math.floor(document.getElementById('caseBet').value/2)">1/2</button>
+                                <button class="bet-btn-double" onclick="document.getElementById('caseBet').value=document.getElementById('caseBet').value*2">2x</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-play" id="caseStartBtn" onclick="startCaseBattle()">Open Case Battle</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INVENTORY -->
+            <div class="page" id="page-inventory" style="display:none;">
+                <div class="forum-container">
+                    <div class="forum-header">
+                        <h2>Your Inventory</h2>
+                        <button class="btn btn-outline" onclick="loadInventoryPage()">Refresh</button>
+                    </div>
+                    <div id="inventoryItems" class="inventory-grid">
+                        <div class="loading">No items yet. Win tags from Case Battles!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORUM -->
+            <div class="page" id="page-forum" style="display:none;"><div class="forum-container"><div class="forum-header"><h2>Community Forum</h2><button class="btn btn-primary" onclick="showModal('createPostModal')" id="createPostBtn" style="display:none;"><svg viewBox="0 0 24 24" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2"/></svg>New Post</button></div><div class="forum-categories"><button class="category-btn active" onclick="filterForum('all')">All</button><button class="category-btn" onclick="filterForum('general')">General</button><button class="category-btn" onclick="filterForum('strategies')">Strategies</button><button class="category-btn" onclick="filterForum('big-wins')">Big Wins</button><button class="category-btn" onclick="filterForum('bug-reports')">Bug Reports</button><button class="category-btn" onclick="filterForum('suggestions')">Suggestions</button></div><div class="forum-posts" id="forumPosts"><div class="loading">Loading posts...</div></div></div></div>
+            <div class="page" id="page-post-detail" style="display:none;"><div class="forum-container"><button class="btn btn-outline" onclick="navigateTo('forum')"><svg viewBox="0 0 24 24" width="16" height="16"><polyline points="15 18 9 12 15 6" stroke="currentColor" fill="none" stroke-width="2"/></svg>Back to Forum</button><div id="postDetailContent"></div><div class="comments-section"><h3>Comments</h3><div id="commentForm" style="display:none;"><textarea id="commentInput" class="forum-textarea" placeholder="Write a comment..." rows="3"></textarea><button class="btn btn-primary" onclick="submitComment()">Post Comment</button></div><div id="commentsList"></div></div></div></div>
+            <div class="page" id="page-profile" style="display:none;"><div class="profile-container"><div class="profile-card"><div class="profile-avatar" id="profileAvatar">?</div><h2 id="profileUsername">Username</h2><p class="profile-email" id="profileEmail">email@example.com</p><div class="profile-balance"><svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="12" r="10" fill="#ffa502"/><text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="#0a0a1a">A</text></svg><span id="profileBalance">0</span><span class="balance-label">Astraphobia</span></div></div><div class="profile-stats"><div class="stat-card"><span class="stat-card-value" id="profileWins">0</span><span class="stat-card-label">Total Wins</span></div><div class="stat-card"><span class="stat-card-value" id="profileWagered">0</span><span class="stat-card-label">Total Wagered</span></div><div class="stat-card"><span class="stat-card-value" id="profileHighScore">0</span><span class="stat-card-label">High Score</span></div></div><div class="profile-edit"><h3>Edit Profile</h3><div class="bet-input-group"><label>Username (min 3 characters)</label><input type="text" id="editUsername" class="bet-input" minlength="3"></div><button class="btn btn-primary" onclick="updateUsername()">Save Username</button></div></div></div>
+            <div class="page" id="page-shop" style="display:none;"><div class="forum-container"><div class="forum-header"><h2>Rank Shop</h2><p style="color: var(--text-muted); margin: 0;">Buy tags to stand out everywhere</p></div><div id="shopItems" class="shop-grid"><div class="loading">Loading shop...</div></div></div></div>
+            <div class="page" id="page-leaderboard" style="display:none;"><div class="forum-container"><div class="forum-header"><h2>Leaderboard</h2><button class="btn btn-outline" onclick="loadLeaderboard()">Refresh</button></div><div id="leaderboardList"><div class="loading">Loading...</div></div></div></div>
 
             <!-- ADMIN PANEL (DRAGGABLE) -->
             <div class="draggable-panel" id="draggableAdminPanel" style="display:none;">
                 <div class="draggable-header" id="draggableAdminHeader">
-                    <h2 class="admin-title">
-                        <svg viewBox="0 0 24 24" width="20" height="20">
-                            <path
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" />
-                        </svg>
-                        Admin Panel
-                    </h2>
-                    <button class="modal-close" onclick="toggleAdminPanel()">
-                        <svg viewBox="0 0 24 24" width="20" height="20">
-                            <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" />
-                            <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" />
-                        </svg>
-                    </button>
+                    <h2 class="admin-title"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Admin Panel</h2>
+                    <button class="modal-close" onclick="toggleAdminPanel()"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button>
                 </div>
                 <div class="draggable-content" id="draggableAdminContent">
                     <div class="admin-stats">
-                        <div class="stat-card admin-stat">
-                            <span class="stat-card-value" id="adminTotalUsers">0</span>
-                            <span class="stat-card-label">Total Users</span>
-                        </div>
-                        <div class="stat-card admin-stat">
-                            <span class="stat-card-value" id="adminTotalCoins">0</span>
-                            <span class="stat-card-label">Total Coins</span>
-                        </div>
-                        <div class="stat-card admin-stat">
-                            <span class="stat-card-value" id="adminCurrentMode">NORMAL</span>
-                            <span class="stat-card-label">Current Mode</span>
-                        </div>
+                        <div class="stat-card admin-stat"><span class="stat-card-value" id="adminTotalUsers">0</span><span class="stat-card-label">Total Users</span></div>
+                        <div class="stat-card admin-stat"><span class="stat-card-value" id="adminTotalCoins">0</span><span class="stat-card-label">Total Coins</span></div>
+                        <div class="stat-card admin-stat"><span class="stat-card-value" id="adminCurrentMode">NORMAL</span><span class="stat-card-label">Current Mode</span></div>
                     </div>
-
-                    <div class="admin-section">
-                        <h3>Game Controls</h3>
-                        <div class="admin-controls-grid">
-                            <div class="bet-input-group">
-                                <label>Global Multiplier Override</label>
-                                <input type="number" id="globalMultiplier" min="0.1" max="1000" step="0.1" value="1.0"
-                                    class="bet-input">
-                                <button class="btn btn-primary" onclick="setGlobalMultiplier()">Apply</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="admin-section">
-                        <h3>📢 Global Announcement</h3>
-                        <div class="admin-controls-grid">
-                            <div class="bet-input-group" style="flex-direction: row; gap: 8px;">
-                                <input type="text" id="announcementInput" class="bet-input"
-                                    placeholder="Type announcement for all players..." style="flex:1;">
-                                <button class="btn btn-primary" onclick="sendAnnouncement()">Send</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="admin-section">
-                        <h3>🛡️ Server Security & Moderation</h3>
-                        <div class="troll-grid" style="grid-template-columns: repeat(2, 1fr);">
-                            <!-- Removed Freeze/Mute buttons -->
-                            <!-- Clear Chat -->
-                            <button class="btn troll-btn troll-gold" onclick="clearGlobalChat()">
-                                🧹 Clear Chat History
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="admin-section">
-                        <h3>Give Coins to User</h3>
-                        <div class="admin-controls-grid">
-                            <div class="bet-input-group">
-                                <label>Username</label>
-                                <input type="text" id="giveCoinsUsername" class="bet-input"
-                                    placeholder="Enter username">
-                            </div>
-                            <div class="bet-input-group">
-                                <label>Amount</label>
-                                <input type="number" id="giveCoinsAmount2" min="1" class="bet-input" value="1000">
-                            </div>
-                            <button class="btn btn-primary" onclick="giveCoinsToUser()"
-                                style="align-self: flex-end; padding: 12px;">Send Coins</button>
-                        </div>
-                    </div>
-
-                    <div class="admin-section">
-                        <h3>User Management</h3>
-                        <button class="btn btn-outline" onclick="loadAdminUsers()">Refresh Users</button>
-                        <div class="admin-users-list" id="adminUsersList"></div>
-                    </div>
-
-                    <div class="admin-section">
-                        <h3>Forum Moderation</h3>
-                        <button class="btn btn-danger" onclick="deleteAllPosts()">Delete All Posts</button>
-                    </div>
+                    <div class="admin-section"><h3>Game Controls</h3><div class="admin-controls-grid"><div class="bet-input-group"><label>Global Multiplier Override</label><input type="number" id="globalMultiplier" min="0.1" max="1000" step="0.1" value="1.0" class="bet-input"><button class="btn btn-primary" onclick="setGlobalMultiplier()">Apply</button></div></div></div>
+                    <div class="admin-section"><h3>📢 Global Announcement</h3><div class="admin-controls-grid"><div class="bet-input-group" style="flex-direction: row; gap: 8px;"><input type="text" id="announcementInput" class="bet-input" placeholder="Type announcement for all players..." style="flex:1;"><button class="btn btn-primary" onclick="sendAnnouncement()">Send</button></div></div></div>
+                    <div class="admin-section"><h3>🛡️ Server Security & Moderation</h3><div class="troll-grid" style="grid-template-columns: repeat(2, 1fr);"><button class="btn troll-btn troll-gold" onclick="clearGlobalChat()">🧹 Clear Chat History</button></div></div>
+                    <div class="admin-section"><h3>Give Coins to User</h3><div class="admin-controls-grid"><div class="bet-input-group"><label>Username</label><input type="text" id="giveCoinsUsername" class="bet-input" placeholder="Enter username"></div><div class="bet-input-group"><label>Amount</label><input type="number" id="giveCoinsAmount2" min="1" class="bet-input" value="1000"></div><button class="btn btn-primary" onclick="giveCoinsToUser()" style="align-self: flex-end; padding: 12px;">Send Coins</button></div></div>
+                    <div class="admin-section"><h3>User Management</h3><button class="btn btn-outline" onclick="loadAdminUsers()">Refresh Users</button><div class="admin-users-list" id="adminUsersList"></div></div>
+                    <div class="admin-section"><h3>Forum Moderation</h3><button class="btn btn-danger" onclick="deleteAllPosts()">Delete All Posts</button></div>
                 </div>
             </div>
         </main>
 
         <!-- GLOBAL CHAT SIDEBAR -->
         <aside class="chat-sidebar" id="chatSidebar">
-            <div class="chat-header">
-                <h3>Global Chat</h3>
-            </div>
+            <div class="chat-header"><h3>Global Chat</h3></div>
             <div class="chat-messages" id="chatMessages">
                 <div class="chat-welcome">Welcome to AstraRise global chat! Be respectful to others.</div>
             </div>
             <div class="chat-input-area">
-                <input type="text" id="chatInput" class="chat-input" placeholder="Say something..." autocomplete="off"
-                    onkeypress="handleChatInput(event)">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Say something..." autocomplete="off" onkeypress="handleChatInput(event)">
                 <button class="btn btn-primary chat-send-btn" onclick="sendChatMessage()">
-                    <svg viewBox="0 0 24 24" width="16" height="16">
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="16" height="16"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
             </div>
         </aside>
     </div>
 
-    <!-- MODALS (Login, Signup, etc. maintained) -->
-    <div class="modal-overlay" id="loginModal" style="display:none;"><div class="modal"><div class="modal-header"><h3>Login to AstraRise</h3><button class="modal-close" onclick="hideModal('loginModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" /><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" /></svg></button></div><div class="modal-body"><div class="form-group"><label>Email</label><input type="email" id="loginEmail" class="form-input" placeholder="your@email.com"></div><div class="form-group"><label>Password</label><input type="password" id="loginPassword" class="form-input" placeholder="Password"></div><button class="btn btn-primary btn-full" onclick="login()">Login</button><p class="modal-footer-text">Don't have an account? <a href="#" onclick="hideModal('loginModal');showModal('signupModal')">Sign Up</a></p></div></div></div>
-    <div class="modal-overlay" id="signupModal" style="display:none;"><div class="modal"><div class="modal-header"><h3>Create Account</h3><button class="modal-close" onclick="hideModal('signupModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" /><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" /></svg></button></div><div class="modal-body"><div class="form-group"><label>Username</label><input type="text" id="signupUsername" class="form-input" placeholder="Username" minlength="3"></div><div class="form-group"><label>Email</label><input type="email" id="signupEmail" class="form-input" placeholder="your@email.com"></div><div class="form-group"><label>Password</label><input type="password" id="signupPassword" class="form-input" placeholder="Min 6 characters" minlength="6"></div><button class="btn btn-primary btn-full" onclick="signup()">Create Account</button><p class="modal-footer-text">Already have an account? <a href="#" onclick="hideModal('signupModal');showModal('loginModal')">Login</a></p></div></div></div>
-    <div class="modal-overlay" id="confirmDeleteModal" style="display:none;"><div class="modal confirm-delete-modal"><div class="modal-header"><h3>Confirm</h3><button class="modal-close" onclick="hideModal('confirmDeleteModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" /><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" /></svg></button></div><div class="modal-body"><p class="confirm-delete-message" id="confirmDeleteMessage">Delete this post?</p><div class="confirm-delete-actions"><button type="button" class="btn btn-outline" onclick="hideModal('confirmDeleteModal')">Cancel</button><button type="button" class="btn btn-danger" id="confirmDeleteYesBtn" onclick="confirmDeleteYes()">Yes, remove</button></div></div></div></div>
-    <div class="modal-overlay" id="createPostModal" style="display:none;"><div class="modal"><div class="modal-header"><h3>Create New Post</h3><button class="modal-close" onclick="hideModal('createPostModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" /><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" /></svg></button></div><div class="modal-body"><div class="form-group"><label>Category</label><select id="postCategory" class="form-input"><option value="general">General</option><option value="strategies">Strategies</option><option value="big-wins">Big Wins</option><option value="bug-reports">Bug Reports</option><option value="suggestions">Suggestions</option></select></div><div class="form-group"><label>Title</label><input type="text" id="postTitle" class="form-input" placeholder="Post title"></div><div class="form-group"><label>Content</label><textarea id="postContent" class="form-input forum-textarea" rows="5" placeholder="Write your post..."></textarea></div><button class="btn btn-primary btn-full" onclick="createPost()">Create Post</button></div></div></div>
+    <!-- MODALS -->
+    <div class="modal-overlay" id="loginModal" style="display:none;"><div class="modal"><div class="modal-header"><h3>Login to AstraRise</h3><button class="modal-close" onclick="hideModal('loginModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button></div><div class="modal-body"><div class="form-group"><label>Email</label><input type="email" id="loginEmail" class="form-input" placeholder="your@email.com"></div><div class="form-group"><label>Password</label><input type="password" id="loginPassword" class="form-input" placeholder="Password"></div><button class="btn btn-primary btn-full" onclick="login()">Login</button><p class="modal-footer-text">Don't have an account? <a href="#" onclick="hideModal('loginModal');showModal('signupModal')">Sign Up</a></p></div></div></div>
+    <div class="modal-overlay" id="signupModal" style="display:none;"><div class="modal"><div class="modal-header"><h3>Create Account</h3><button class="modal-close" onclick="hideModal('signupModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button></div><div class="modal-body"><div class="form-group"><label>Username</label><input type="text" id="signupUsername" class="form-input" placeholder="Username" minlength="3"></div><div class="form-group"><label>Email</label><input type="email" id="signupEmail" class="form-input" placeholder="your@email.com"></div><div class="form-group"><label>Password</label><input type="password" id="signupPassword" class="form-input" placeholder="Min 6 characters" minlength="6"></div><button class="btn btn-primary btn-full" onclick="signup()">Create Account</button><p class="modal-footer-text">Already have an account? <a href="#" onclick="hideModal('signupModal');showModal('loginModal')">Login</a></p></div></div></div>
+    <div class="modal-overlay" id="confirmDeleteModal" style="display:none;"><div class="modal confirm-delete-modal"><div class="modal-header"><h3>Confirm</h3><button class="modal-close" onclick="hideModal('confirmDeleteModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button></div><div class="modal-body"><p class="confirm-delete-message" id="confirmDeleteMessage">Delete this post?</p><div class="confirm-delete-actions"><button type="button" class="btn btn-outline" onclick="hideModal('confirmDeleteModal')">Cancel</button><button type="button" class="btn btn-danger" id="confirmDeleteYesBtn" onclick="confirmDeleteYes()">Yes, remove</button></div></div></div></div>
+    <div class="modal-overlay" id="createPostModal" style="display:none;"><div class="modal"><div class="modal-header"><h3>Create New Post</h3><button class="modal-close" onclick="hideModal('createPostModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button></div><div class="modal-body"><div class="form-group"><label>Category</label><select id="postCategory" class="form-input"><option value="general">General</option><option value="strategies">Strategies</option><option value="big-wins">Big Wins</option><option value="bug-reports">Bug Reports</option><option value="suggestions">Suggestions</option></select></div><div class="form-group"><label>Title</label><input type="text" id="postTitle" class="form-input" placeholder="Post title"></div><div class="form-group"><label>Content</label><textarea id="postContent" class="form-input forum-textarea" rows="5" placeholder="Write your post..."></textarea></div><button class="btn btn-primary btn-full" onclick="createPost()">Create Post</button></div></div></div>
+
+    <!-- VAULT MODAL -->
+    <div class="modal-overlay" id="vaultModal" style="display:none;">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header">
+                <h3>🔒 Vault</h3>
+                <button class="modal-close" onclick="hideModal('vaultModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="vault-info-box">
+                    <div class="vault-balance-display">
+                        <span class="vault-label">Vault Balance</span>
+                        <span class="vault-amount" id="vaultBalanceDisplay">0</span>
+                    </div>
+                    <div class="vault-passive-info">
+                        <span class="vault-passive-rate" id="vaultPassiveRate">+0/sec</span>
+                        <span class="vault-passive-label">Passive Income (5% online, 1% offline)</span>
+                    </div>
+                    <div class="vault-offline-earnings" id="vaultOfflineEarnings" style="display:none;">
+                        <span>💤 While you were away, you earned:</span>
+                        <span class="vault-offline-amount" id="vaultOfflineAmount">0</span>
+                    </div>
+                </div>
+                <div class="vault-actions">
+                    <div class="bet-input-group">
+                        <label>Amount</label>
+                        <div class="bet-input-wrapper">
+                            <input type="number" id="vaultAmount" min="1" value="100" class="bet-input">
+                            <button class="bet-btn-half" onclick="document.getElementById('vaultAmount').value=Math.floor(document.getElementById('vaultAmount').value/2)">1/2</button>
+                            <button class="bet-btn-double" onclick="document.getElementById('vaultAmount').value=document.getElementById('vaultAmount').value*2">2x</button>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <button class="btn btn-primary" style="flex:1;" onclick="depositToVault()">Deposit</button>
+                        <button class="btn btn-cashout" style="flex:1;" onclick="withdrawFromVault()">Withdraw</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DONATE MODAL -->
+    <div class="modal-overlay" id="donateModal" style="display:none;">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-header">
+                <h3>❤️ Donate to Player</h3>
+                <button class="modal-close" onclick="hideModal('donateModal')"><svg viewBox="0 0 24 24" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/></svg></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Recipient Username</label>
+                    <input type="text" id="donateUsername" class="form-input" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" id="donateAmount" min="1" class="form-input" placeholder="Amount to send">
+                </div>
+                <button class="btn btn-primary btn-full" onclick="sendDonation()">Send Donation</button>
+                <div id="donateNotifications" class="donate-notifications" style="margin-top:16px;"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- TOAST CONTAINER -->
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- FLOATING ADMIN BUTTON -->
     <button id="floatingAdminBtn" class="floating-admin-btn" onclick="toggleAdminPanel()" style="display:none;">
-        <svg viewBox="0 0 24 24" width="20" height="20">
-            <path
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" />
-        </svg>
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Admin
     </button>
 
@@ -521,6 +473,7 @@
     <script src="js/multiplayer.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/daily.js"></script>
+    <script src="js/vault.js"></script>
     <script src="js/games/dice.js"></script>
     <script src="js/games/crash.js"></script>
     <script src="js/games/mines.js"></script>
@@ -530,12 +483,16 @@
     <script src="js/games/coinflip.js"></script>
     <script src="js/games/keno.js"></script>
     <script src="js/games/towers.js"></script>
+    <script src="js/games/roulette.js"></script>
+    <script src="js/games/cases.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/forum.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/shop.js"></script>
     <script src="js/leaderboard.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/donate.js"></script>
     <script src="js/app.js"></script>
 </body>
 
