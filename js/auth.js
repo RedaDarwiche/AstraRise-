@@ -13,7 +13,6 @@ async function initAuth() {
             await loadProfile();
             updateAuthUI(true);
             
-            // Initialize background balance check (Poll every 10s to keep in sync)
             setInterval(() => {
                 if(currentUser) loadProfile();
             }, 10000);
@@ -53,7 +52,6 @@ async function login() {
     }
 }
 
-
 async function signup() {
     const username = document.getElementById('signupUsername').value.trim();
     const email = document.getElementById('signupEmail').value.trim();
@@ -77,7 +75,6 @@ async function signup() {
     try {
         const data = await supabase.signUp(email, password);
 
-        // Try to sign in immediately after signup
         try {
             const loginData = await supabase.signIn(email, password);
             currentUser = loginData.user;
@@ -91,13 +88,15 @@ async function signup() {
             }
         }
 
-        // Create profile
         if (currentUser && currentUser.id) {
             try {
                 await supabase.insert('profiles', {
                     id: currentUser.id,
                     username: username,
                     high_score: 100,
+                    vault_balance: 0,
+                    inventory: [],
+                    last_active: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 });
             } catch (profileErr) {
@@ -106,6 +105,9 @@ async function signup() {
                         id: currentUser.id,
                         username: username,
                         high_score: 100,
+                        vault_balance: 0,
+                        inventory: [],
+                        last_active: new Date().toISOString(),
                         updated_at: new Date().toISOString()
                     });
                 } catch (e2) {
@@ -124,10 +126,20 @@ async function signup() {
 }
 
 async function logout() {
+    // Save last_active before logout for offline earnings calc
+    if (currentUser) {
+        try {
+            await supabase.update('profiles', 
+                { last_active: new Date().toISOString() },
+                `id=eq.${currentUser.id}`
+            );
+        } catch(e) {}
+    }
     await supabase.signOut();
     currentUser = null;
     userProfile = null;
     userBalance = 0;
+    if (typeof stopVaultPassiveIncome === 'function') stopVaultPassiveIncome();
     updateAuthUI(false);
     navigateTo('home');
     showToast('Logged out successfully', 'info');
@@ -140,24 +152,25 @@ async function loadProfile() {
         if (profile) {
             userProfile = profile;
             
-            // Check if balance changed externally (e.g. admin gift)
             const oldBalance = userBalance;
-            userBalance = profile.high_score || 0;
+            // Use safeParseNumber for large balance values
+            userBalance = safeParseNumber(profile.high_score);
             
-            // Only update display if changed
             if (oldBalance !== userBalance) {
                 updateBalanceDisplay();
             }
         } else {
-            // Profile fallback creation
             await supabase.insert('profiles', {
                 id: currentUser.id,
                 username: currentUser.email.split('@')[0],
                 high_score: 100,
+                vault_balance: 0,
+                inventory: [],
+                last_active: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             });
             userBalance = 100;
-            userProfile = { id: currentUser.id, username: currentUser.email.split('@')[0], high_score: 100 };
+            userProfile = { id: currentUser.id, username: currentUser.email.split('@')[0], high_score: 100, vault_balance: 0, inventory: [] };
             updateBalanceDisplay();
         }
     } catch (e) {
@@ -166,7 +179,9 @@ async function loadProfile() {
 }
 
 async function updateBalance(newBalance) {
-    userBalance = Math.max(0, Math.round(newBalance));
+    // CRITICAL FIX: Use Math.round and ensure we stay within safe integer range
+    // Cap at Number.MAX_SAFE_INTEGER to prevent precision loss
+    userBalance = Math.max(0, Math.min(Math.round(newBalance), Number.MAX_SAFE_INTEGER));
     updateBalanceDisplay();
     if (currentUser) {
         try {
@@ -184,7 +199,6 @@ function updateBalanceDisplay() {
     const el = document.getElementById('balanceAmount');
     if (el) el.textContent = userBalance.toLocaleString();
     
-    // Also update profile page if open
     const profBal = document.getElementById('profileBalance');
     if (profBal) profBal.textContent = userBalance.toLocaleString();
 }
@@ -197,6 +211,9 @@ function updateAuthUI(loggedIn) {
     const profileNavBtn = document.getElementById('profileNavBtn');
     const floatingAdminBtn = document.getElementById('floatingAdminBtn');
     const createPostBtn = document.getElementById('createPostBtn');
+    const vaultBtn = document.getElementById('vaultBtn');
+    const inventoryNavBtn = document.getElementById('inventoryNavBtn');
+    const donateNavBtn = document.getElementById('donateNavBtn');
 
     if (loggedIn && currentUser) {
         authButtons.style.display = 'none';
@@ -205,13 +222,15 @@ function updateAuthUI(loggedIn) {
         dailyBtn.style.display = 'flex';
         profileNavBtn.style.display = 'flex';
         if (createPostBtn) createPostBtn.style.display = 'flex';
+        if (vaultBtn) vaultBtn.style.display = 'flex';
+        if (inventoryNavBtn) inventoryNavBtn.style.display = 'flex';
+        if (donateNavBtn) donateNavBtn.style.display = 'flex';
 
         const avatar = document.getElementById('userAvatar');
         if (userProfile && userProfile.username) {
             avatar.textContent = userProfile.username.charAt(0).toUpperCase();
         }
 
-        // Check if owner
         if (currentUser.email === OWNER_EMAIL) {
             if (floatingAdminBtn) {
                 floatingAdminBtn.style.display = 'flex';
@@ -225,6 +244,16 @@ function updateAuthUI(loggedIn) {
 
         updateBalanceDisplay();
         initDailyReward();
+        
+        // Init vault passive income
+        if (typeof initVault === 'function') {
+            setTimeout(() => initVault(), 500);
+        }
+        
+        // Check for donation notifications
+        if (typeof checkDonationNotifications === 'function') {
+            setTimeout(() => checkDonationNotifications(), 1000);
+        }
     } else {
         authButtons.style.display = 'flex';
         userMenu.style.display = 'none';
@@ -233,6 +262,9 @@ function updateAuthUI(loggedIn) {
         profileNavBtn.style.display = 'none';
         if (floatingAdminBtn) floatingAdminBtn.style.display = 'none';
         if (createPostBtn) createPostBtn.style.display = 'none';
+        if (vaultBtn) vaultBtn.style.display = 'none';
+        if (inventoryNavBtn) inventoryNavBtn.style.display = 'none';
+        if (donateNavBtn) donateNavBtn.style.display = 'none';
     }
 }
 
@@ -240,7 +272,6 @@ function isOwner() {
     return currentUser && currentUser.email === OWNER_EMAIL;
 }
 
-// Ensure owner button shows up reliably
 function checkAndShowOwnerBtn() {
     const btn = document.getElementById('floatingAdminBtn');
     if (!btn) return;
