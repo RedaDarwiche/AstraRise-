@@ -15,6 +15,7 @@ class SupabaseClient {
         const h = {
             'Content-Type': 'application/json',
             'apikey': this.key,
+            // Fall back to anon key if access token is missing
             'Authorization': `Bearer ${this.accessToken || this.key}`
         };
         return h;
@@ -74,8 +75,9 @@ class SupabaseClient {
         return data;
     }
 
-    async signOut() {
-        if (this.accessToken) {
+    // Added a localOnly flag so we don't send 403 requests to the server if the token is already dead
+    async signOut(localOnly = false) {
+        if (!localOnly && this.accessToken) {
             await fetch(`${this.url}/auth/v1/logout`, {
                 method: 'POST',
                 headers: this.headers()
@@ -90,26 +92,37 @@ class SupabaseClient {
     async getUser() {
         const token = this.accessToken || localStorage.getItem('sb_access_token');
         if (!token) return null;
+        
         this.accessToken = token;
-        const res = await fetch(`${this.url}/auth/v1/user`, {
-            headers: { 'Authorization': `Bearer ${token}`, 'apikey': this.key }
-        });
-        if (!res.ok) {
-            // Try refresh
-            const refreshed = await this.refreshToken();
-            if (!refreshed) {
-                this.signOut(); // Clean up dead token
-                return null;
-            }
-            const res2 = await fetch(`${this.url}/auth/v1/user`, {
-                headers: { 'Authorization': `Bearer ${this.accessToken}`, 'apikey': this.key }
+        
+        try {
+            const res = await fetch(`${this.url}/auth/v1/user`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'apikey': this.key }
             });
-            if (!res2.ok) return null;
-            this.user = await res2.json();
+            
+            if (!res.ok) {
+                // Token is likely expired, try refresh
+                const refreshed = await this.refreshToken();
+                if (!refreshed) {
+                    // Refresh failed. Nuke the tokens LOCALLY so we don't get 403 loops
+                    await this.signOut(true); 
+                    return null;
+                }
+                
+                // Refresh succeeded, fetch user again with the new token
+                const res2 = await fetch(`${this.url}/auth/v1/user`, {
+                    headers: { 'Authorization': `Bearer ${this.accessToken}`, 'apikey': this.key }
+                });
+                if (!res2.ok) return null;
+                this.user = await res2.json();
+                return this.user;
+            }
+            this.user = await res.json();
             return this.user;
+        } catch(e) {
+            console.warn("Failed to fetch user:", e);
+            return null;
         }
-        this.user = await res.json();
-        return this.user;
     }
 
     async refreshToken() {
@@ -121,6 +134,9 @@ class SupabaseClient {
                 headers: { 'Content-Type': 'application/json', 'apikey': this.key },
                 body: JSON.stringify({ refresh_token: refreshToken })
             });
+            
+            if (!res.ok) return false; // Fail fast on 400 errors
+
             const data = await res.json();
             if (data.access_token) {
                 this.accessToken = data.access_token;
@@ -136,7 +152,9 @@ class SupabaseClient {
                 this.user = data.user;
                 return true;
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn("Token refresh failed");
+        }
         return false;
     }
 
