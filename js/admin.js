@@ -7,7 +7,6 @@ function toggleAdminPanel() {
     if (panel.style.display === 'none') {
         panel.style.display = 'flex';
         loadAdminUsers();
-        // Reset position if needed or keep saved
     } else {
         panel.style.display = 'none';
     }
@@ -52,8 +51,12 @@ function getGlobalMultiplier() {
     return globalMultiplierValue;
 }
 
+// Added back to prevent ReferenceError in game files
+function getTrollMode() {
+    return 'normal';
+}
+
 // CHECK IF BETS ARE ALLOWED
-// Simplified: Just returns standard multipliers since freeze is removed
 function handleTrollResult(originalWin, originalMultiplier, betAmount) {
     return { 
         win: originalWin, 
@@ -126,15 +129,12 @@ async function updateUserBalance(userId) {
     const newBalance = parseInt(input.value);
     
     try {
-        // Fetch old balance to calculate difference for notification
         const { data: oldProfile } = await supabase.selectSingle('profiles', 'high_score', `id=eq.${userId}`);
         const oldBal = oldProfile ? oldProfile.high_score : 0;
         const diff = newBalance - oldBal;
 
-        // Update DB
         await supabase.update('profiles', { high_score: newBalance }, `id=eq.${userId}`);
         
-        // Notify User via Socket if there was a change
         if (socket && socket.connected && diff !== 0) {
             socket.emit('admin_command', { 
                 command: 'gift_coins', 
@@ -160,10 +160,8 @@ async function giveCoinsToUser() {
             const user = profiles[0];
             const newBal = (user.high_score || 0) + amount;
             
-            // 1. Update Database
             await supabase.update('profiles', { high_score: newBal }, `id=eq.${user.id}`);
             
-            // 2. Emit Socket Event for Instant Notification
             if (socket && socket.connected) {
                 socket.emit('admin_command', { 
                     command: 'gift_coins', 
@@ -174,7 +172,7 @@ async function giveCoinsToUser() {
             }
 
             showToast(`Sent ${amount} coins to ${username}`, 'success');
-            loadAdminUsers(); // Refresh admin list
+            loadAdminUsers(); 
         } else { showToast('User not found', 'error'); }
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
