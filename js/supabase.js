@@ -28,11 +28,21 @@ class SupabaseClient {
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error.message || data.msg || 'Signup failed');
+        
         if (data.access_token) {
             this.accessToken = data.access_token;
+            localStorage.setItem('sb_access_token', data.access_token);
+            if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
+            
+            // Guarantee user object exists
+            if (!data.user) {
+                const uRes = await fetch(`${this.url}/auth/v1/user`, {
+                    headers: { 'Authorization': `Bearer ${data.access_token}`, 'apikey': this.key }
+                });
+                if (uRes.ok) data.user = await uRes.json();
+            }
             this.user = data.user;
         } else if (data.user) {
-            // Auto-confirm might give us user but no token, try logging in
             this.user = data.user;
         }
         return data;
@@ -46,10 +56,21 @@ class SupabaseClient {
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error.message || data.error_description || 'Login failed');
-        this.accessToken = data.access_token;
-        this.user = data.user;
-        localStorage.setItem('sb_access_token', data.access_token);
-        localStorage.setItem('sb_refresh_token', data.refresh_token);
+        
+        if (data.access_token) {
+            this.accessToken = data.access_token;
+            localStorage.setItem('sb_access_token', data.access_token);
+            if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
+            
+            // Guarantee user object exists
+            if (!data.user) {
+                const uRes = await fetch(`${this.url}/auth/v1/user`, {
+                    headers: { 'Authorization': `Bearer ${data.access_token}`, 'apikey': this.key }
+                });
+                if (uRes.ok) data.user = await uRes.json();
+            }
+            this.user = data.user;
+        }
         return data;
     }
 
@@ -76,7 +97,10 @@ class SupabaseClient {
         if (!res.ok) {
             // Try refresh
             const refreshed = await this.refreshToken();
-            if (!refreshed) return null;
+            if (!refreshed) {
+                this.signOut(); // Clean up dead token
+                return null;
+            }
             const res2 = await fetch(`${this.url}/auth/v1/user`, {
                 headers: { 'Authorization': `Bearer ${this.accessToken}`, 'apikey': this.key }
             });
@@ -100,9 +124,16 @@ class SupabaseClient {
             const data = await res.json();
             if (data.access_token) {
                 this.accessToken = data.access_token;
-                this.user = data.user;
                 localStorage.setItem('sb_access_token', data.access_token);
-                localStorage.setItem('sb_refresh_token', data.refresh_token);
+                if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
+                
+                if (!data.user) {
+                    const uRes = await fetch(`${this.url}/auth/v1/user`, {
+                        headers: { 'Authorization': `Bearer ${data.access_token}`, 'apikey': this.key }
+                    });
+                    if (uRes.ok) data.user = await uRes.json();
+                }
+                this.user = data.user;
                 return true;
             }
         } catch (e) {}
@@ -170,32 +201,26 @@ class SupabaseClient {
         return JSON.parse(text);
     }
 
-    // Select
     async select(table, columns = '*', filters = '', order = '', limit = '') {
         return this.query(table, 'GET', { select: columns, filters, order, limit });
     }
 
-    // Insert
     async insert(table, data) {
         return this.query(table, 'POST', { body: data, select: '*' });
     }
 
-    // Upsert
     async upsert(table, data) {
         return this.query(table, 'POST', { body: data, upsert: true, select: '*' });
     }
 
-    // Update
     async update(table, data, filters) {
         return this.query(table, 'PATCH', { body: data, filters, select: '*' });
     }
 
-    // Delete
     async delete(table, filters) {
         return this.query(table, 'DELETE', { filters });
     }
 
-    // Single row select
     async selectSingle(table, columns = '*', filters = '') {
         return this.query(table, 'GET', { select: columns, filters, single: true });
     }
