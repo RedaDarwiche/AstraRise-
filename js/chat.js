@@ -2,12 +2,21 @@
 let globalMessages =[];
 let announcementBannerTimer = null;
 
+// Dynamically inject CSS for the Tip button so you don't have to edit styles.css
+const chatStyle = document.createElement('style');
+chatStyle.innerHTML = `
+    .chat-author-wrapper { display: inline-flex; align-items: center; gap: 6px; position: relative; }
+    .chat-tip-btn { display: none; background: var(--warning); color: #000; border: none; border-radius: 4px; padding: 2px 6px; font-size: 0.7em; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+    .chat-msg-header:hover .chat-tip-btn { display: inline-block; }
+`;
+document.head.appendChild(chatStyle);
+
 function showAnnouncementBanner(text) {
     const banner = document.getElementById('announcementBanner');
     const textEl = document.getElementById('announcementBannerText');
     if (!banner || !textEl) return;
     
-    // Remove the emoji from the hardcoded HTML label dynamically
+    // Ensure no emojis in the label
     const label = banner.querySelector('.announcement-banner-label');
     if (label) label.textContent = 'ANNOUNCEMENT';
 
@@ -39,10 +48,11 @@ function initChat() {
 
     if (socket && socket.connected !== undefined) {
         socket.on('chat_history', (messages) => {
-            globalMessages = messages;
+            // Filter out system backend messages from history
+            globalMessages = messages.filter(m => m.author !== 'SYSTEM_GIFT' && m.author !== 'SYSTEM_TIP');
             renderChatMessages();
             
-            // MAGIC SYNC: Scan history to restore Freeze and Mute states for late-joiners
+            // MAGIC SYNC: Restore Freeze/Mute states without emojis
             let isFrozen = false;
             let isMuted = false;
             const announcements = messages.filter(m => m.author === 'ANNOUNCEMENT');
@@ -59,12 +69,26 @@ function initChat() {
             }
             window.chatMuted = isMuted;
             
-            // Update Admin button text if applicable
             const muteBtn = document.getElementById('btnMuteChat');
             if (muteBtn) muteBtn.textContent = window.chatMuted ? 'Unmute Global Chat' : 'Lock Global Chat';
         });
 
         socket.on('new_chat_message', (msg) => {
+            // INTERCEPT HIDDEN TIPS & GIFTS (Do not render in chat)
+            if (msg.author === 'SYSTEM_GIFT' || msg.author === 'SYSTEM_TIP') {
+                try {
+                    const data = JSON.parse(msg.text);
+                    if (userProfile && userProfile.username === data.to) {
+                        const title = msg.author === 'SYSTEM_GIFT' ? 'OWNER' : data.from;
+                        showToast(`You received ${data.amount} Astraphobia from ${title}!`, 'success');
+                        
+                        // Instantly refresh balance safely
+                        if (typeof loadProfile === 'function') loadProfile();
+                    }
+                } catch(e) {}
+                return; // Stop here!
+            }
+
             globalMessages.push(msg);
             if (globalMessages.length > 50) globalMessages.shift();
             renderChatMessages();
@@ -72,7 +96,7 @@ function initChat() {
             if (msg.author === 'ANNOUNCEMENT' && msg.text) {
                 showAnnouncementBanner(msg.text);
                 
-                // MAGIC SYNC: Instantly apply states when a new announcement drops
+                // Live state syncs
                 if (msg.text.includes('Betting is temporarily frozen')) {
                     if (typeof window.applyServerMode === 'function') window.applyServerMode('freeze_bets');
                 } else if (msg.text.includes('Betting has resumed')) {
@@ -98,12 +122,50 @@ function initChat() {
     }
 }
 
+async function tipUser(targetUsername) {
+    if (!currentUser || !userProfile) { showToast('Please login to tip users', 'error'); return; }
+    if (targetUsername === userProfile.username) { showToast('You cannot tip yourself!', 'warning'); return; }
+    if (targetUsername === 'ANNOUNCEMENT') return;
+    
+    const amountStr = prompt(`How much Astraphobia do you want to tip ${targetUsername}?`);
+    if (!amountStr) return;
+    const amount = parseInt(amountStr);
+    
+    if (isNaN(amount) || amount <= 0) { showToast('Invalid amount', 'error'); return; }
+    if (amount > userBalance) { showToast('Insufficient balance', 'error'); return; }
+
+    try {
+        // Trigger the Supabase RPC function we created
+        await supabase.query('rpc/tip_user', 'POST', {
+            body: { sender_id: currentUser.id, target_username: targetUsername, tip_amount: amount }
+        });
+        
+        // Deduct locally and save
+        updateBalance(userBalance - amount);
+        showToast(`Successfully tipped ${amount} to ${targetUsername}!`, 'success');
+        
+        // Send hidden system notification via Chat Socket
+        if (socket && socket.connected) {
+            socket.emit('send_chat', {
+                author: 'SYSTEM_TIP',
+                text: JSON.stringify({ from: userProfile.username, to: targetUsername, amount: amount })
+            });
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Tipping failed! Make sure the Admin ran the SQL fix.', 'error');
+    }
+}
+
 function renderChatMessages() {
     const chatContainer = document.getElementById('chatMessages');
     if (!chatContainer) return;
     chatContainer.innerHTML = '';
 
     globalMessages.forEach(msg => {
+        // Double check we don't render system messages
+        if (msg.author === 'SYSTEM_GIFT' || msg.author === 'SYSTEM_TIP') return;
+
         const date = new Date(msg.time);
         const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
         const msgEl = document.createElement('div');
@@ -113,14 +175,21 @@ function renderChatMessages() {
         const safeAuthor = msg.author.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
         let tagHTML = '';
+        let tipButtonHTML = '';
         if (msg.author !== 'ANNOUNCEMENT') {
             if (msg.isOwner) tagHTML += '<span class="rank-tag rank-owner">OWNER</span>';
             if (msg.equippedRank && typeof getRankTagHTML === 'function') tagHTML += getRankTagHTML(false, msg.equippedRank);
+            
+            // Inject the Tip Button
+            tipButtonHTML = `<button class="chat-tip-btn" onclick="tipUser('${safeAuthor}')">Tip</button>`;
         }
         
         msgEl.innerHTML = `
             <div class="chat-msg-header">
-                <span class="${authorClass}">${tagHTML}${safeAuthor}</span>
+                <div class="chat-author-wrapper">
+                    <span class="${authorClass}">${tagHTML}${safeAuthor}</span>
+                    ${tipButtonHTML}
+                </div>
                 <span class="chat-time">${timeStr}</span>
             </div>
             <div class="chat-text">${safeText}</div>
@@ -142,7 +211,6 @@ function sendChatMessage() {
 
     const isOwnerUser = currentUser.email === 'redadarwichepaypal@gmail.com';
 
-    // Block messages if global mute is active (Admins bypass this)
     if (window.chatMuted && !isOwnerUser) {
         showToast('Global chat is currently muted by an Admin.', 'error');
         return;
