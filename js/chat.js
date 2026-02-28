@@ -48,22 +48,35 @@ function initChat() {
     if (socket && socket.connected !== undefined) {
         // Listen for chat history
         socket.on('chat_history', (messages) => {
-            // Overwrite history to sync with server
             globalMessages = messages;
             renderChatMessages();
         });
 
-        // Listen for new messages from OTHERS
+        // Listen for new messages
         socket.on('new_chat_message', (msg) => {
-            // DEDUPLICATION CHECK:
-            // Check if we already have this message (by ID or exact content/time/author match)
-            // This prevents the "double message" bug since we render our own messages immediately now.
-            const exists = globalMessages.some(m => 
-                (m.id && m.id === msg.id) || 
-                (m.author === msg.author && m.text === msg.text && Math.abs(m.time - msg.time) < 500)
-            );
+            const myUsername = userProfile?.username || 'User';
+            
+            // LOGIC FIX: 
+            // 1. If message is NOT from me, always accept it.
+            // 2. If message IS from me, check if I already have it (Optimistic Render check).
+            
+            let shouldAdd = true;
 
-            if (!exists) {
+            if (msg.author === myUsername) {
+                // It's from me. Do we already have it?
+                // Check the last 5 messages to find a match to avoid full array scan
+                const recentMessages = globalMessages.slice(-5);
+                const isDuplicate = recentMessages.some(m => 
+                    (m.id && m.id === msg.id) || 
+                    (m.text === msg.text && Math.abs(m.time - msg.time) < 1000)
+                );
+                
+                if (isDuplicate) {
+                    shouldAdd = false; // Ignore echo from server
+                }
+            }
+
+            if (shouldAdd) {
                 globalMessages.push(msg);
                 if (globalMessages.length > 50) globalMessages.shift();
                 renderChatMessages();
@@ -145,11 +158,6 @@ function sendChatMessage() {
         return;
     }
 
-    if (localStorage.getItem(`muted_${currentUser.username}`)) {
-        showToast('You have been muted by an Admin', 'error');
-        return;
-    }
-    
     // Moderation Check (Owner Bypass)
     if (containsProfanity(text) && currentUser.email !== 'redadarwichepaypal@gmail.com') {
         showToast('Message blocked: Profanity detected.', 'error');
@@ -167,7 +175,7 @@ function sendChatMessage() {
         isOwner: isOwnerUser,
         equippedRank: equippedRank,
         time: Date.now(),
-        id: Date.now() + Math.random().toString(36).substr(2, 9) // Unique ID for deduplication
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2) // Unique ID
     };
 
     // 1. OPTIMISTIC RENDER: Show message immediately to sender
@@ -181,6 +189,9 @@ function sendChatMessage() {
     } else {
         // Offline fallback
         localStorage.setItem('astrarise_offline_chat', JSON.stringify(globalMessages));
+        if(!socket || !socket.connected) {
+            showToast('Chat offline. Connecting...', 'warning');
+        }
     }
 
     input.value = '';
