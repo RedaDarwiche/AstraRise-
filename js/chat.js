@@ -1,8 +1,8 @@
-// chat.js
+// chat.js - FIXED double message issue
 let globalMessages = [];
 let announcementBannerTimer = null;
+let chatInitialized = false;
 
-// Basic Profanity Filter
 const BAD_WORDS = ['scam', 'cheat', 'rigged', 'hack', 'fuck', 'shit', 'bitch', 'asshole', 'cunt', 'nigger', 'faggot', 'retard']; 
 
 function containsProfanity(text) {
@@ -10,7 +10,6 @@ function containsProfanity(text) {
     return BAD_WORDS.some(word => lowerText.includes(word));
 }
 
-// Show big in-game announcement banner
 function showAnnouncementBanner(text) {
     const banner = document.getElementById('announcementBanner');
     const textEl = document.getElementById('announcementBannerText');
@@ -40,62 +39,31 @@ function dismissAnnouncementBanner() {
     if (banner) banner.style.display = 'none';
 }
 
-// Initialize Chat
 function initChat() {
+    if (chatInitialized) return; // Prevent double initialization
+    chatInitialized = true;
+    
     const chatContainer = document.getElementById('chatMessages');
     if(chatContainer) chatContainer.innerHTML = '';
 
     if (socket && socket.connected !== undefined) {
-        // Listen for chat history
         socket.on('chat_history', (messages) => {
             globalMessages = messages;
             renderChatMessages();
         });
 
-        // Listen for new messages
+        // KEY FIX: Don't use optimistic rendering. Only render messages from server.
         socket.on('new_chat_message', (msg) => {
-            const myUsername = userProfile?.username || 'User';
-            
-            // LOGIC FIX: 
-            // 1. If message is NOT from me, always accept it.
-            // 2. If message IS from me, check if I already have it (Optimistic Render check).
-            
-            let shouldAdd = true;
+            // Simply add every message from server
+            // Server is the single source of truth
+            globalMessages.push(msg);
+            if (globalMessages.length > 50) globalMessages.shift();
+            renderChatMessages();
 
-            if (msg.author === myUsername) {
-                // It's from me. Do we already have it?
-                // Check the last 5 messages to find a match to avoid full array scan
-                const recentMessages = globalMessages.slice(-5);
-                const isDuplicate = recentMessages.some(m => 
-                    (m.id && m.id === msg.id) || 
-                    (m.text === msg.text && Math.abs(m.time - msg.time) < 1000)
-                );
-                
-                if (isDuplicate) {
-                    shouldAdd = false; // Ignore echo from server
-                }
-            }
-
-            if (shouldAdd) {
-                globalMessages.push(msg);
-                if (globalMessages.length > 50) globalMessages.shift();
-                renderChatMessages();
-            }
-
-            // Show announcement banner if applicable
             if (msg.author === '📢 ANNOUNCEMENT' && msg.text) {
                 showAnnouncementBanner(msg.text);
             }
         });
-    }
-
-    // Load offline messages if no server connection logic kicked in
-    if (!globalMessages.length) {
-        const saved = localStorage.getItem('astrarise_offline_chat');
-        if (saved) {
-            try { globalMessages = JSON.parse(saved); } catch (e) { }
-            renderChatMessages();
-        }
     }
 }
 
@@ -114,13 +82,11 @@ function renderChatMessages() {
 
         const authorClass = msg.isOwner ? 'chat-author owner' : 'chat-author';
 
-        // Escape HTML to prevent XSS
         const safeText = (msg.text || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const safeAuthor = (msg.author || 'User').replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
         let authorDisplay = safeAuthor;
         
-        // Show rank tags
         let tagHTML = '';
         if (msg.author !== '📢 ANNOUNCEMENT') {
             if (msg.isOwner) {
@@ -143,7 +109,6 @@ function renderChatMessages() {
         chatContainer.appendChild(msgEl);
     });
 
-    // Auto-scroll to bottom
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
@@ -158,40 +123,33 @@ function sendChatMessage() {
         return;
     }
 
-    // Moderation Check (Owner Bypass)
-    if (containsProfanity(text) && currentUser.email !== 'redadarwichepaypal@gmail.com') {
+    if (containsProfanity(text) && currentUser.email !== OWNER_EMAIL) {
         showToast('Message blocked: Profanity detected.', 'error');
         input.value = '';
         return;
     }
 
-    const isOwnerUser = currentUser.email === 'redadarwichepaypal@gmail.com';
+    const isOwnerUser = currentUser.email === OWNER_EMAIL;
     const equippedRank = typeof getEquippedRank === 'function' ? getEquippedRank() : null;
 
-    // Create message object with unique ID
     const msgData = {
         author: userProfile?.username || 'User',
         text: text,
         isOwner: isOwnerUser,
         equippedRank: equippedRank,
-        time: Date.now(),
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2) // Unique ID
+        time: Date.now()
     };
 
-    // 1. OPTIMISTIC RENDER: Show message immediately to sender
-    globalMessages.push(msgData);
-    if (globalMessages.length > 50) globalMessages.shift();
-    renderChatMessages();
-
-    // 2. Send to Server
+    // NO optimistic render - just send to server and wait for echo
     if (socket && socket.connected) {
         socket.emit('send_chat', msgData);
     } else {
-        // Offline fallback
+        // Offline fallback - render locally only
+        globalMessages.push(msgData);
+        if (globalMessages.length > 50) globalMessages.shift();
+        renderChatMessages();
         localStorage.setItem('astrarise_offline_chat', JSON.stringify(globalMessages));
-        if(!socket || !socket.connected) {
-            showToast('Chat offline. Connecting...', 'warning');
-        }
+        showToast('Chat offline. Connecting...', 'warning');
     }
 
     input.value = '';
@@ -203,7 +161,6 @@ function handleChatInput(e) {
     }
 }
 
-// Ensure initChat is called
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(initChat, 1000);
 });
