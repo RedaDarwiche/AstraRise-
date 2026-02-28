@@ -298,4 +298,33 @@ function checkAndShowOwnerBtn() {
 setTimeout(checkAndShowOwnerBtn, 2000);
 setTimeout(checkAndShowOwnerBtn, 5000);
 
+// --- BACKGROUND BALANCE SYNC ---
+// Automatically fetches the user's balance every 8 seconds so if an Admin 
+// gives them coins, it updates their screen instantly without refreshing.
+setInterval(async () => {
+    if (!currentUser) return;
+    
+    // Skip sync if the user just placed a bet (prevents UI glitches while gaming)
+    if (Date.now() - lastBalanceUpdateLocal < 5000) return; 
+    
+    try {
+        const profile = await supabase.selectSingle('profiles', 'high_score', `id=eq.${currentUser.id}`);
+        if (profile && typeof profile.high_score === 'number') {
+            if (userBalance !== profile.high_score) {
+                const diff = profile.high_score - userBalance;
+                
+                // Apply the new balance to the UI
+                userBalance = profile.high_score;
+                updateBalanceDisplay();
+                
+                // Show a nice popup if they received a gift!
+                if (diff > 0) {
+                    showToast(`You received ${diff} Astraphobia coins!`, 'success');
+                }
+            }
+        }
+    } catch(e) {
+        // Silently ignore background fetch errors to prevent console spam
+    }
+}, 8000);
 
