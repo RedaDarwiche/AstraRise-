@@ -12,6 +12,12 @@ async function initAuth() {
             currentUser = user;
             await loadProfile();
             updateAuthUI(true);
+            
+            // Initialize background balance check (Poll every 10s to keep in sync)
+            setInterval(() => {
+                if(currentUser) loadProfile();
+            }, 10000);
+            
         } else {
             updateAuthUI(false);
         }
@@ -37,7 +43,6 @@ async function login() {
             await loadProfile();
         } catch (profileErr) {
             console.error('Profile load after login:', profileErr);
-            // Still show logged-in UI even if profile fetch fails
             userBalance = 0;
         }
         updateAuthUI(true);
@@ -77,7 +82,6 @@ async function signup() {
             const loginData = await supabase.signIn(email, password);
             currentUser = loginData.user;
         } catch (loginErr) {
-            // If auto-login fails, the user might need to confirm email
             if (data.user) {
                 currentUser = data.user;
             } else {
@@ -97,7 +101,6 @@ async function signup() {
                     updated_at: new Date().toISOString()
                 });
             } catch (profileErr) {
-                // Profile might already exist, try upsert
                 try {
                     await supabase.upsert('profiles', {
                         id: currentUser.id,
@@ -136,10 +139,17 @@ async function loadProfile() {
         const profile = await supabase.selectSingle('profiles', '*', `id=eq.${currentUser.id}`);
         if (profile) {
             userProfile = profile;
+            
+            // Check if balance changed externally (e.g. admin gift)
+            const oldBalance = userBalance;
             userBalance = profile.high_score || 0;
-            updateBalanceDisplay();
+            
+            // Only update display if changed
+            if (oldBalance !== userBalance) {
+                updateBalanceDisplay();
+            }
         } else {
-            // Create profile if not exists
+            // Profile fallback creation
             await supabase.insert('profiles', {
                 id: currentUser.id,
                 username: currentUser.email.split('@')[0],
@@ -152,20 +162,6 @@ async function loadProfile() {
         }
     } catch (e) {
         console.error('Load profile error:', e);
-        // Try creating profile
-        try {
-            await supabase.upsert('profiles', {
-                id: currentUser.id,
-                username: currentUser.email.split('@')[0],
-                high_score: 100,
-                updated_at: new Date().toISOString()
-            });
-            userBalance = 100;
-            userProfile = { id: currentUser.id, username: currentUser.email.split('@')[0], high_score: 100 };
-            updateBalanceDisplay();
-        } catch (e2) {
-            console.error('Profile creation fallback error:', e2);
-        }
     }
 }
 
@@ -187,6 +183,10 @@ async function updateBalance(newBalance) {
 function updateBalanceDisplay() {
     const el = document.getElementById('balanceAmount');
     if (el) el.textContent = userBalance.toLocaleString();
+    
+    // Also update profile page if open
+    const profBal = document.getElementById('profileBalance');
+    if (profBal) profBal.textContent = userBalance.toLocaleString();
 }
 
 function updateAuthUI(loggedIn) {
@@ -212,12 +212,10 @@ function updateAuthUI(loggedIn) {
         }
 
         // Check if owner
-        console.log('Auth check - email:', currentUser.email, 'OWNER_EMAIL:', OWNER_EMAIL);
         if (currentUser.email === OWNER_EMAIL) {
             if (floatingAdminBtn) {
                 floatingAdminBtn.style.display = 'flex';
             } else {
-                // DOM might not be ready yet, retry after a short delay
                 setTimeout(() => {
                     const btn = document.getElementById('floatingAdminBtn');
                     if (btn) btn.style.display = 'flex';
@@ -248,10 +246,7 @@ function checkAndShowOwnerBtn() {
     if (!btn) return;
     if (currentUser && currentUser.email === OWNER_EMAIL) {
         btn.style.display = 'flex';
-        console.log('Owner button activated for:', currentUser.email);
     }
 }
 
-// Run the owner check after a delay too, in case auth is slow
 setTimeout(checkAndShowOwnerBtn, 2000);
-setTimeout(checkAndShowOwnerBtn, 5000);
