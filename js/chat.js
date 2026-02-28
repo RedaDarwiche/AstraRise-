@@ -6,6 +6,11 @@ function showAnnouncementBanner(text) {
     const banner = document.getElementById('announcementBanner');
     const textEl = document.getElementById('announcementBannerText');
     if (!banner || !textEl) return;
+    
+    // Remove the emoji from the hardcoded HTML label dynamically
+    const label = banner.querySelector('.announcement-banner-label');
+    if (label) label.textContent = 'ANNOUNCEMENT';
+
     if (announcementBannerTimer) {
         clearTimeout(announcementBannerTimer);
         announcementBannerTimer = null;
@@ -29,6 +34,7 @@ function dismissAnnouncementBanner() {
 }
 
 function initChat() {
+    window.chatMuted = false;
     renderChatMessages();
 
     if (socket && socket.connected !== undefined) {
@@ -36,16 +42,26 @@ function initChat() {
             globalMessages = messages;
             renderChatMessages();
             
-            // MAGIC SYNC: Check history so late-joiners get frozen too
-            const announcements = messages.filter(m => m.author === '📢 ANNOUNCEMENT');
-            if (announcements.length > 0) {
-                const lastMsg = announcements[announcements.length - 1].text;
-                if (lastMsg.includes('❄️ Betting is temporarily frozen')) {
-                    if (typeof window.applyServerMode === 'function') window.applyServerMode('freeze_bets');
-                } else if (lastMsg.includes('✅ Betting has resumed')) {
-                    if (typeof window.applyServerMode === 'function') window.applyServerMode('normal');
-                }
+            // MAGIC SYNC: Scan history to restore Freeze and Mute states for late-joiners
+            let isFrozen = false;
+            let isMuted = false;
+            const announcements = messages.filter(m => m.author === 'ANNOUNCEMENT');
+            
+            announcements.forEach(msg => {
+                if (msg.text.includes('Betting is temporarily frozen')) isFrozen = true;
+                if (msg.text.includes('Betting has resumed')) isFrozen = false;
+                if (msg.text.includes('Global chat is now muted')) isMuted = true;
+                if (msg.text.includes('Global chat has been unmuted')) isMuted = false;
+            });
+            
+            if (typeof window.applyServerMode === 'function') {
+                window.applyServerMode(isFrozen ? 'freeze_bets' : 'normal');
             }
+            window.chatMuted = isMuted;
+            
+            // Update Admin button text if applicable
+            const muteBtn = document.getElementById('btnMuteChat');
+            if (muteBtn) muteBtn.textContent = window.chatMuted ? 'Unmute Global Chat' : 'Lock Global Chat';
         });
 
         socket.on('new_chat_message', (msg) => {
@@ -53,15 +69,22 @@ function initChat() {
             if (globalMessages.length > 50) globalMessages.shift();
             renderChatMessages();
             
-            if (msg.author === '📢 ANNOUNCEMENT' && msg.text) {
+            if (msg.author === 'ANNOUNCEMENT' && msg.text) {
                 showAnnouncementBanner(msg.text);
                 
-                // MAGIC SYNC: Instantly freeze all active players when announcement drops
-                if (msg.text.includes('❄️ Betting is temporarily frozen')) {
+                // MAGIC SYNC: Instantly apply states when a new announcement drops
+                if (msg.text.includes('Betting is temporarily frozen')) {
                     if (typeof window.applyServerMode === 'function') window.applyServerMode('freeze_bets');
-                } else if (msg.text.includes('✅ Betting has resumed')) {
+                } else if (msg.text.includes('Betting has resumed')) {
                     if (typeof window.applyServerMode === 'function') window.applyServerMode('normal');
+                } else if (msg.text.includes('Global chat is now muted')) {
+                    window.chatMuted = true;
+                } else if (msg.text.includes('Global chat has been unmuted')) {
+                    window.chatMuted = false;
                 }
+                
+                const muteBtn = document.getElementById('btnMuteChat');
+                if (muteBtn) muteBtn.textContent = window.chatMuted ? 'Unmute Global Chat' : 'Lock Global Chat';
             }
         });
     }
@@ -90,7 +113,7 @@ function renderChatMessages() {
         const safeAuthor = msg.author.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
         let tagHTML = '';
-        if (msg.author !== '📢 ANNOUNCEMENT') {
+        if (msg.author !== 'ANNOUNCEMENT') {
             if (msg.isOwner) tagHTML += '<span class="rank-tag rank-owner">OWNER</span>';
             if (msg.equippedRank && typeof getRankTagHTML === 'function') tagHTML += getRankTagHTML(false, msg.equippedRank);
         }
@@ -117,12 +140,19 @@ function sendChatMessage() {
         return;
     }
 
+    const isOwnerUser = currentUser.email === 'redadarwichepaypal@gmail.com';
+
+    // Block messages if global mute is active (Admins bypass this)
+    if (window.chatMuted && !isOwnerUser) {
+        showToast('Global chat is currently muted by an Admin.', 'error');
+        return;
+    }
+
     if (localStorage.getItem(`muted_${currentUser.username}`)) {
         showToast('You have been muted by an Admin', 'error');
         return;
     }
 
-    const isOwnerUser = currentUser.email === 'redadarwichepaypal@gmail.com';
     const equippedRank = typeof getEquippedRank === 'function' ? getEquippedRank() : null;
 
     const msgData = {
