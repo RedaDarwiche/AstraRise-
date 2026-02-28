@@ -1,6 +1,5 @@
 // Admin Panel Logic
 let globalMultiplierValue = 1.0;
-window.serverMode = 'normal'; // Global server mode state
 
 function toggleAdminPanel() {
     if (!isOwner()) return;
@@ -46,8 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- CORE ADMIN FUNCTIONS ---
 
 function isOwner() {
-    // Check against the OWNER_EMAIL defined in supabase.js or hardcoded
-    // Ensure this matches exactly what is in your database/auth
     return currentUser && currentUser.email === 'redadarwichepaypal@gmail.com'; 
 }
 
@@ -114,15 +111,12 @@ function updateAdminButtons() {
 }
 
 // 2. CHECK IF BETS ARE ALLOWED
-// This is called by EVERY game before playing
+// This is called by EVERY game
 function handleTrollResult(originalWin, originalMultiplier, betAmount) {
-    // Strict check: If bets are frozen, fail immediately.
     if (window.serverMode === 'freeze_bets') {
-        showToast('⚠️ Bets are currently frozen by Admin!', 'error');
         return { win: false, multiplier: 0, frozen: true };
     }
 
-    // Normal game logic
     return { 
         win: originalWin, 
         multiplier: originalMultiplier * globalMultiplierValue, 
@@ -130,12 +124,31 @@ function handleTrollResult(originalWin, originalMultiplier, betAmount) {
     };
 }
 
-// 3. GLOBAL CHAT MUTE
+// 3. GLOBAL CHAT MUTE (Includes Announcement)
+let isGlobalChatMuted = false; // Local toggle state tracker
+
 function toggleGlobalMute() {
     if (!isOwner()) return;
+    
+    isGlobalChatMuted = !isGlobalChatMuted;
+    
     if (socket && socket.connected) {
+        // 1. Toggle technical mute
         socket.emit('admin_command', { command: 'toggle_mute' });
-        showToast('Toggled Global Chat Mute', 'warning');
+        
+        // 2. Send Global Announcement
+        const text = isGlobalChatMuted 
+            ? '🔒 Global Chat has been LOCKED by an Administrator.' 
+            : '🔓 Global Chat has been UNLOCKED.';
+            
+        socket.emit('global_announcement', { text: text });
+        
+        // 3. Local Feedback
+        showToast(`Chat ${isGlobalChatMuted ? 'Locked' : 'Unlocked'}`, 'success');
+        
+        // Update button text
+        const btn = document.getElementById('btnMuteChat');
+        if(btn) btn.innerHTML = isGlobalChatMuted ? '🔓 Unlock Global Chat' : '🔇 Lock Global Chat';
     }
 }
 
@@ -203,11 +216,11 @@ async function updateUserBalance(userId) {
     const newBalance = parseInt(input.value);
     try {
         await supabase.update('profiles', { high_score: newBalance }, `id=eq.${userId}`);
-        showToast('Balance updated! User needs to refresh or wait for sync.', 'success');
+        showToast('Balance updated! User will see change instantly.', 'success');
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
-// 8. SEND COINS (By Username) - UPDATED with Notification
+// 8. SEND COINS (By Username)
 async function giveCoinsToUser() {
     if (!isOwner()) return;
     const username = document.getElementById('giveCoinsUsername').value.trim();
