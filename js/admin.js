@@ -7,7 +7,6 @@ function toggleAdminPanel() {
     if (panel.style.display === 'none') {
         panel.style.display = 'flex';
         loadAdminUsers();
-        // Reset position if needed or keep saved
     } else {
         panel.style.display = 'none';
     }
@@ -48,75 +47,12 @@ function isOwner() {
     return currentUser && currentUser.email === 'redadarwichepaypal@gmail.com'; 
 }
 
-function getTrollMode() {
-    return window.serverMode;
-}
-
 function getGlobalMultiplier() {
     return globalMultiplierValue;
 }
 
-// 1. FREEZE BETS LOGIC (Fixed Toggle)
-function setTrollMode(actionType) {
-    if (!isOwner()) return;
-
-    let newMode = 'normal';
-
-    if (actionType === 'freeze_bets') {
-        // Toggle logic: If currently frozen, switch to normal. Else freeze.
-        newMode = (window.serverMode === 'freeze_bets') ? 'normal' : 'freeze_bets';
-    } else if (actionType === 'normal') {
-        newMode = 'normal'; // Force reset
-    }
-
-    window.serverMode = newMode;
-    
-    // Update Admin UI Label
-    const label = newMode === 'freeze_bets' ? '❄️ BETS FROZEN' : 'NORMAL';
-    const modeLabel = document.getElementById('adminCurrentMode');
-    if (modeLabel) modeLabel.textContent = label;
-    
-    // Show Toast
-    if (newMode === 'freeze_bets') {
-        showToast('❄️ All betting has been frozen!', 'error');
-    } else {
-        showToast('✅ Betting resumed (Normal mode)', 'success');
-    }
-
-    updateAdminButtons();
-
-    // Broadcast change to all players via Socket
-    if (socket && socket.connected) {
-        socket.emit('admin_command', { command: 'set_mode', mode: newMode });
-    }
-}
-
-function updateAdminButtons() {
-    // Find the freeze button and update its look
-    const freezeBtns = document.querySelectorAll('.troll-btn');
-    freezeBtns.forEach(btn => {
-        const onclick = btn.getAttribute('onclick');
-        if (onclick && onclick.includes('freeze_bets')) {
-            if (window.serverMode === 'freeze_bets') {
-                btn.innerHTML = '❄️ Unfreeze Bets';
-                btn.classList.remove('troll-red');
-                btn.classList.add('troll-gold'); // Gold indicates "Click to Fix/Normal"
-            } else {
-                btn.innerHTML = '❄️ Freeze All Bets';
-                btn.classList.remove('troll-gold');
-                btn.classList.add('troll-red');
-            }
-        }
-    });
-}
-
-// 2. CHECK IF BETS ARE ALLOWED
-// This is called by EVERY game
+// CLEANED UP: Standard result handler (Freeze logic removed)
 function handleTrollResult(originalWin, originalMultiplier, betAmount) {
-    if (window.serverMode === 'freeze_bets') {
-        return { win: false, multiplier: 0, frozen: true };
-    }
-
     return { 
         win: originalWin, 
         multiplier: originalMultiplier * globalMultiplierValue, 
@@ -124,35 +60,12 @@ function handleTrollResult(originalWin, originalMultiplier, betAmount) {
     };
 }
 
-// 3. GLOBAL CHAT MUTE (Includes Announcement)
-let isGlobalChatMuted = false; // Local toggle state tracker
-
-function toggleGlobalMute() {
-    if (!isOwner()) return;
-    
-    isGlobalChatMuted = !isGlobalChatMuted;
-    
-    if (socket && socket.connected) {
-        // 1. Toggle technical mute
-        socket.emit('admin_command', { command: 'toggle_mute' });
-        
-        // 2. Send Global Announcement
-        const text = isGlobalChatMuted 
-            ? '🔒 Global Chat has been LOCKED by an Administrator.' 
-            : '🔓 Global Chat has been UNLOCKED.';
-            
-        socket.emit('global_announcement', { text: text });
-        
-        // 3. Local Feedback
-        showToast(`Chat ${isGlobalChatMuted ? 'Locked' : 'Unlocked'}`, 'success');
-        
-        // Update button text
-        const btn = document.getElementById('btnMuteChat');
-        if(btn) btn.innerHTML = isGlobalChatMuted ? '🔓 Unlock Global Chat' : '🔇 Lock Global Chat';
-    }
+// Function to return current troll mode (always normal now)
+function getTrollMode() {
+    return 'normal';
 }
 
-// 4. CLEAR CHAT
+// 1. CLEAR CHAT
 function clearGlobalChat() {
     if (!isOwner()) return;
     if(confirm("Are you sure you want to delete all chat history for everyone?")) {
@@ -163,7 +76,7 @@ function clearGlobalChat() {
     }
 }
 
-// 5. ANNOUNCEMENTS
+// 2. ANNOUNCEMENTS
 function sendAnnouncement() {
     if (!isOwner()) return;
     const input = document.getElementById('announcementInput');
@@ -176,7 +89,7 @@ function sendAnnouncement() {
     input.value = '';
 }
 
-// 6. GLOBAL MULTIPLIER
+// 3. GLOBAL MULTIPLIER
 function setGlobalMultiplier() {
     if (!isOwner()) return;
     const val = parseFloat(document.getElementById('globalMultiplier').value);
@@ -186,7 +99,7 @@ function setGlobalMultiplier() {
     }
 }
 
-// 7. USER MANAGEMENT (Load/Update Balances)
+// 4. USER MANAGEMENT (Load Users)
 async function loadAdminUsers() {
     if (!isOwner()) return;
     try {
@@ -210,17 +123,41 @@ async function loadAdminUsers() {
     } catch (e) { console.error(e); }
 }
 
+// 5. UPDATE USER BALANCE (Set specific amount)
 async function updateUserBalance(userId) {
     if (!isOwner()) return;
     const input = document.getElementById(`balance_${userId}`);
     const newBalance = parseInt(input.value);
+    
     try {
+        // 1. Get current data to calculate diff
+        const currentData = await supabase.selectSingle('profiles', 'high_score, username', `id=eq.${userId}`);
+        const oldBalance = currentData.high_score || 0;
+        const diff = newBalance - oldBalance;
+
+        // 2. Update DB
         await supabase.update('profiles', { high_score: newBalance }, `id=eq.${userId}`);
-        showToast('Balance updated! User will see change instantly.', 'success');
+        
+        // 3. Send Notification via Socket
+        if (socket && socket.connected) {
+            // If we added money, treat as "Received". If we set/reduced, treat as "Set Balance".
+            const type = diff > 0 ? 'gift' : 'set_balance';
+            const amountToSend = diff > 0 ? diff : newBalance;
+
+            socket.emit('admin_command', { 
+                command: 'gift_coins', 
+                targetUsername: currentData.username,
+                targetId: userId,
+                amount: amountToSend,
+                type: type
+            });
+        }
+
+        showToast('Balance updated & user notified!', 'success');
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
-// 8. SEND COINS (By Username)
+// 6. GIVE COINS (Add amount)
 async function giveCoinsToUser() {
     if (!isOwner()) return;
     const username = document.getElementById('giveCoinsUsername').value.trim();
@@ -236,13 +173,14 @@ async function giveCoinsToUser() {
             // 1. Update Database
             await supabase.update('profiles', { high_score: newBal }, `id=eq.${user.id}`);
             
-            // 2. Emit Socket Event for Instant Notification
+            // 2. Emit Socket Event for Notification (Triggers "You received..." message)
             if (socket && socket.connected) {
                 socket.emit('admin_command', { 
                     command: 'gift_coins', 
                     targetUsername: username, 
                     targetId: user.id,
-                    amount: amount 
+                    amount: amount,
+                    type: 'gift'
                 });
             }
 
