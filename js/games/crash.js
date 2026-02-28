@@ -1,347 +1,373 @@
-// Case Battle System - PvP via Socket.io + Bot mode
-const CASE_TIERS = [
-    {
-        id: 'bronze', name: 'Bronze Case', cost: 50, color: '#cd7f32', icon: '🥉',
-        pool: [
-            { tagId: 'common', weight: 50 },
-            { tagId: 'uncommon', weight: 30 },
-            { tagId: 'rare', weight: 15 },
-            { tagId: 'epic', weight: 5 }
-        ]
-    },
-    {
-        id: 'silver', name: 'Silver Case', cost: 200, color: '#c0c0c0', icon: '🥈',
-        pool: [
-            { tagId: 'uncommon', weight: 40 },
-            { tagId: 'rare', weight: 30 },
-            { tagId: 'epic', weight: 20 },
-            { tagId: 'legendary', weight: 10 }
-        ]
-    },
-    {
-        id: 'gold', name: 'Gold Case', cost: 500, color: '#ffa502', icon: '🥇',
-        pool: [
-            { tagId: 'rare', weight: 30 },
-            { tagId: 'epic', weight: 30 },
-            { tagId: 'legendary', weight: 25 },
-            { tagId: 'mythic', weight: 15 }
-        ]
-    },
-    {
-        id: 'diamond', name: 'Diamond Case', cost: 2000, color: '#00d2ff', icon: '💎',
-        pool: [
-            { tagId: 'epic', weight: 20 },
-            { tagId: 'legendary', weight: 30 },
-            { tagId: 'mythic', weight: 25 },
-            { tagId: 'divine', weight: 20 },
-            { tagId: 'astral', weight: 5 }
-        ]
-    },
-    {
-        id: 'cosmic', name: 'Cosmic Case', cost: 5000, color: '#8e44ad', icon: '🌌',
-        pool: [
-            { tagId: 'legendary', weight: 15 },
-            { tagId: 'mythic', weight: 25 },
-            { tagId: 'divine', weight: 35 },
-            { tagId: 'astral', weight: 25 }
-        ]
-    }
-];
+// Global Multiplayer Crash Game (WebSockets)
+const CRASH_STATE = {
+    WAITING: 'WAITING',
+    RUNNING: 'RUNNING',
+    CRASHED: 'CRASHED'
+};
 
-let selectedCaseTier = 'bronze';
-let caseMode = 'pvp';
-let caseSpinning = false;
-let myOpenBattleId = null;
+let crashState = CRASH_STATE.WAITING;
+let crashMultiplierValue = 1.00;
+let crashTimer = 10.0;
+let crashHistory = [];
 
-function getTagById(id) {
-    return CASE_EXCLUSIVE_TAGS.find(t => t.id === id) || { id, name: id, color: '#888', value: 0 };
-}
+let myCrashBetAmount = 0;
+let myCrashAutoCashout = 0;
+let myCrashCashedOut = false;
+let myBetActive = false;
 
-function getTagFromSeed(seed, tierId) {
-    const tier = CASE_TIERS.find(t => t.id === tierId);
-    if (!tier) return getTagById('common');
-    const pool = tier.pool;
-    const totalWeight = pool.reduce((s, p) => s + p.weight, 0);
-    let threshold = seed * totalWeight;
-    for (const entry of pool) {
-        threshold -= entry.weight;
-        if (threshold <= 0) return getTagById(entry.tagId);
-    }
-    return getTagById(pool[pool.length - 1].tagId);
-}
+// Array of { user, bet, target, cashedOut, winAmount, isMe, cashoutMul }
+let liveBets = [];
 
-function getRandomTagForTier(tierId) {
-    return getTagFromSeed(Math.random(), tierId);
-}
+let crashCanvas, crashCtx;
+let crashAnimFrame = null;
+let lastCrashStartT = 0;
 
-function initCasePage() {
-    renderCaseTiers();
-    setCaseMode('pvp');
-    if (socket && socket.connected) {
-        socket.emit('case_request_lobbies');
-    }
-}
+function initGlobalCrash() {
+    crashCanvas = document.getElementById('crashCanvas');
+    if (!crashCanvas) return;
+    crashCtx = crashCanvas.getContext('2d');
 
-function renderCaseTiers() {
-    const container = document.getElementById('caseTiersGrid');
-    if (!container) return;
-    container.innerHTML = CASE_TIERS.map(tier => `
-        <div class="case-tier-card ${selectedCaseTier === tier.id ? 'selected' : ''}" onclick="selectCaseTier('${tier.id}')" style="border-color:${selectedCaseTier === tier.id ? tier.color : 'var(--border-color)'};">
-            <div class="case-tier-icon">${tier.icon}</div>
-            <div class="case-tier-name">${tier.name}</div>
-            <div class="case-tier-cost">${tier.cost} Astraphobia</div>
-        </div>
-    `).join('');
-}
+    // SOCKET LISTENERS
+    socket.on('crash_state', (data) => {
+        crashState = data.state;
+        crashMultiplierValue = data.multiplier || 1.0;
+        if (data.timer !== null) crashTimer = data.timer;
 
-function selectCaseTier(tierId) {
-    selectedCaseTier = tierId;
-    renderCaseTiers();
-}
-
-function setCaseMode(mode) {
-    caseMode = mode;
-    document.getElementById('caseModeBtn_pvp').className = 'case-mode-btn' + (mode === 'pvp' ? ' active' : '');
-    document.getElementById('caseModeBtn_bot').className = 'case-mode-btn' + (mode === 'bot' ? ' active' : '');
-    document.getElementById('casePvpSection').style.display = mode === 'pvp' ? 'block' : 'none';
-    document.getElementById('caseBotSection').style.display = mode === 'bot' ? 'block' : 'none';
-    document.getElementById('caseBattleArea').style.display = 'none';
-}
-
-// === PVP LOBBY ===
-function createCaseBattle() {
-    if (!currentUser) { showToast('Please login', 'error'); return; }
-    if (myOpenBattleId) { showToast('You already have an open battle', 'warning'); return; }
-    const tier = CASE_TIERS.find(t => t.id === selectedCaseTier);
-    if (!tier) return;
-    if (userBalance < tier.cost) { showToast('Insufficient balance', 'error'); return; }
-
-    updateBalance(userBalance - tier.cost);
-    playBetSound();
-
-    socket.emit('case_create', {
-        username: userProfile.username,
-        userId: currentUser.id,
-        caseTier: tier.id,
-        cost: tier.cost
-    });
-
-    document.getElementById('caseCreateBtn').style.display = 'none';
-    document.getElementById('caseCancelBtn').style.display = 'inline-flex';
-    document.getElementById('caseWaiting').style.display = 'flex';
-}
-
-function cancelCaseBattle() {
-    if (!myOpenBattleId) return;
-    const tier = CASE_TIERS.find(t => t.id === selectedCaseTier);
-    if (tier) updateBalance(userBalance + tier.cost);
-
-    socket.emit('case_cancel', { oduserId: currentUser.id });
-    myOpenBattleId = null;
-
-    document.getElementById('caseCreateBtn').style.display = 'inline-flex';
-    document.getElementById('caseCancelBtn').style.display = 'none';
-    document.getElementById('caseWaiting').style.display = 'none';
-    showToast('Battle cancelled, cost refunded', 'info');
-}
-
-function joinCaseBattle(battleId, cost) {
-    if (!currentUser) { showToast('Please login', 'error'); return; }
-    if (userBalance < cost) { showToast('Insufficient balance', 'error'); return; }
-
-    updateBalance(userBalance - cost);
-    playBetSound();
-
-    socket.emit('case_join', {
-        battleId: battleId,
-        username: userProfile.username,
-        userId: currentUser.id
-    });
-}
-
-function renderLobby(battles) {
-    const list = document.getElementById('caseLobbyList');
-    if (!list) return;
-
-    const myId = currentUser ? currentUser.id : null;
-    const openBattles = battles.filter(b => b.creatorId !== myId);
-
-    // Track my open battle
-    const myBattle = battles.find(b => b.creatorId === myId);
-    if (myBattle) {
-        myOpenBattleId = myBattle.id;
-        document.getElementById('caseCreateBtn').style.display = 'none';
-        document.getElementById('caseCancelBtn').style.display = 'inline-flex';
-        document.getElementById('caseWaiting').style.display = 'flex';
-    } else {
-        if (myOpenBattleId) {
-            // Battle was taken or cancelled
-            myOpenBattleId = null;
-            document.getElementById('caseCreateBtn').style.display = 'inline-flex';
-            document.getElementById('caseCancelBtn').style.display = 'none';
-            document.getElementById('caseWaiting').style.display = 'none';
+        if (crashState === CRASH_STATE.WAITING) {
+            // New round started
+            liveBets = [];
+            myBetActive = false;
+            myCrashCashedOut = false;
+        } else if (crashState === CRASH_STATE.RUNNING) {
+            lastCrashStartT = Date.now();
         }
-    }
 
-    if (openBattles.length === 0) {
-        list.innerHTML = '<div class="loading">No open battles. Create one or play vs Bot!</div>';
+        updateCrashUI();
+        renderBetsList();
+        renderCrashLoop(); // Just trigger a draw once
+    });
+
+    socket.on('crash_timer', (data) => {
+        crashTimer = data.timer;
+        updateCrashUI();
+        renderCrashLoop();
+    });
+
+    socket.on('crash_tick', (data) => {
+        crashMultiplierValue = data.multiplier;
+
+        // Handle Auto Cashout
+        if (myBetActive && !myCrashCashedOut && myCrashAutoCashout > 0 && crashMultiplierValue >= myCrashAutoCashout) {
+            cashoutCrashUser();
+        }
+
+        updateCrashUI();
+        renderCrashLoop();
+    });
+
+    socket.on('crash_end', (data) => {
+        crashState = CRASH_STATE.CRASHED;
+        crashMultiplierValue = data.multiplier;
+
+        crashHistory.unshift(crashMultiplierValue.toFixed(2));
+        if (crashHistory.length > 10) crashHistory.pop();
+
+        if (myBetActive && !myCrashCashedOut) {
+            showToast(`Crashed at ${crashMultiplierValue.toFixed(2)}x! You lost ${myCrashBetAmount}`, 'error');
+        }
+
+        updateCrashUI();
+        renderBetsList();
+        renderCrashLoop();
+    });
+
+    socket.on('crash_live_bet', (data) => {
+        liveBets.push({
+            user: data.user,
+            bet: data.bet,
+            target: data.target,
+            cashedOut: false,
+            winAmount: 0,
+            isMe: false,
+            isOwner: data.isOwner || false,
+            equippedRank: data.equippedRank || null
+        });
+        renderBetsList();
+    });
+
+    socket.on('crash_live_cashout', (data) => {
+        const bet = liveBets.find(b => b.user === data.user && !b.cashedOut);
+        if (bet) {
+            bet.cashedOut = true;
+            bet.cashoutMul = data.multiplier;
+            bet.winAmount = data.winAmount;
+        }
+        renderBetsList();
+    });
+
+    // Start render loop (graphs only update when state changes, or continuously if running)
+    requestAnimationFrame(continuousRender);
+}
+
+function continuousRender() {
+    if (crashState === CRASH_STATE.RUNNING) {
+        renderCrashLoop();
+    }
+    requestAnimationFrame(continuousRender);
+}
+
+function toggleCrashBet() {
+    if (!currentUser) { showToast('Please login to play', 'error'); return; }
+
+    if (crashState === CRASH_STATE.RUNNING && myBetActive && !myCrashCashedOut) {
+        cashoutCrashUser();
         return;
     }
 
-    list.innerHTML = openBattles.map(b => {
-        const tier = CASE_TIERS.find(t => t.id === b.caseTier);
-        return `<div class="case-lobby-row">
-            <div class="case-lobby-info">
-                <span class="case-lobby-creator">${escapeHtml(b.creator)}</span>
-                <span class="case-lobby-tier" style="color:${tier?.color || '#fff'}">${tier?.icon || ''} ${tier?.name || b.caseTier}</span>
-            </div>
-            <div class="case-lobby-cost">${b.cost} Astraphobia</div>
-            <button class="btn btn-primary btn-sm" onclick="joinCaseBattle('${b.id}',${b.cost})">Join Battle</button>
-        </div>`;
-    }).join('');
-}
+    if (crashState !== CRASH_STATE.WAITING) {
+        showToast('Betting is closed for this round!', 'warning');
+        return;
+    }
 
-// === BOT MODE ===
-function startBotBattle() {
-    if (!currentUser) { showToast('Please login', 'error'); return; }
-    if (caseSpinning) return;
-    const tier = CASE_TIERS.find(t => t.id === selectedCaseTier);
-    if (!tier) return;
-    if (userBalance < tier.cost) { showToast('Insufficient balance', 'error'); return; }
+    if (myBetActive) {
+        // Cancel bet
+        updateBalance(userBalance + myCrashBetAmount);
+        myBetActive = false;
+        liveBets = liveBets.filter(b => !b.isMe);
+        updateCrashUI();
+        renderBetsList();
+        showToast('Bet cancelled', 'info');
+        return;
+    }
 
-    updateBalance(userBalance - tier.cost);
-    totalWagered += tier.cost;
+    // FREEZE CHECK
+    if (window.serverMode === 'freeze_bets') {
+        showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
+        return;
+    }
+
+    const bet = parseInt(document.getElementById('crashBet').value);
+    if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
+    if (bet > userBalance) { showToast('Insufficient balance', 'error'); return; }
+
+    myCrashBetAmount = bet;
+    myCrashAutoCashout = parseFloat(document.getElementById('crashAutoCashout').value) || 0;
+
+    updateBalance(userBalance - bet);
+    if (window.totalWagered !== undefined) window.totalWagered += bet;
+
+    myBetActive = true;
     playBetSound();
+    myCrashCashedOut = false;
 
-    const tag1 = getRandomTagForTier(tier.id);
-    const tag2 = getRandomTagForTier(tier.id);
+    const isOwnerUser = currentUser && currentUser.email === 'redadarwichepaypal@gmail.com';
+    const myBetData = {
+        user: userProfile?.username || 'You',
+        bet: bet,
+        target: myCrashAutoCashout,
+        cashedOut: false,
+        winAmount: 0,
+        isMe: true,
+        isOwner: isOwnerUser,
+        equippedRank: typeof getEquippedRank === 'function' ? getEquippedRank() : null
+    };
 
-    runBattleAnimation(userProfile.username, 'Bot', tag1, tag2, tier.id, true);
+    liveBets.push(myBetData);
+
+    // Broadcast bet to server
+    socket.emit('crash_place_bet', myBetData);
+
+    updateCrashUI();
+    renderBetsList();
+    showToast('Bet placed for next round!', 'success');
 }
 
-// === BATTLE ANIMATION ===
-function runBattleAnimation(p1Name, p2Name, tag1, tag2, tierId, iAmPlayer1) {
-    caseSpinning = true;
-    const area = document.getElementById('caseBattleArea');
-    area.style.display = 'block';
-    document.getElementById('casePvpSection').style.display = 'none';
-    document.getElementById('caseBotSection').style.display = 'none';
+function cashoutCrashUser() {
+    if (crashState !== CRASH_STATE.RUNNING || !myBetActive || myCrashCashedOut) return;
 
-    document.getElementById('caseP1Name').textContent = p1Name;
-    document.getElementById('caseP2Name').textContent = p2Name;
-    document.getElementById('caseBattleOutcome').textContent = '';
-    document.getElementById('caseResultLeft').innerHTML = '';
-    document.getElementById('caseResultRight').innerHTML = '';
+    myCrashCashedOut = true;
 
-    buildSpinReel('caseReelLeft', tag1, tierId);
-    buildSpinReel('caseReelRight', tag2, tierId);
+    // Find my bet
+    const myBet = liveBets.find(b => b.isMe);
+    if (myBet) {
+        myBet.cashedOut = true;
 
-    setTimeout(async () => {
-        document.getElementById('caseResultLeft').innerHTML = `<div class="case-final-tag" style="color:${tag1.color};border-color:${tag1.color};">${tag1.name} (${tag1.value})</div>`;
-        document.getElementById('caseResultRight').innerHTML = `<div class="case-final-tag" style="color:${tag2.color};border-color:${tag2.color};">${tag2.name} (${tag2.value})</div>`;
+        const winAmount = Math.floor(myCrashBetAmount * crashMultiplierValue);
+        myBet.winAmount = winAmount;
+        myBet.cashoutMul = crashMultiplierValue;
 
-        const outcomeEl = document.getElementById('caseBattleOutcome');
-        const iWon = (iAmPlayer1 && tag1.value >= tag2.value) || (!iAmPlayer1 && tag2.value >= tag1.value);
+        updateBalance(userBalance + winAmount);
+        if (window.totalWins !== undefined) window.totalWins++;
 
-        if (iWon) {
-            playCashoutSound();
-            outcomeEl.innerHTML = `<span class="case-win">🎉 YOU WIN! You get both tags!</span>`;
-            await addToInventory(tag1);
-            await addToInventory(tag2);
-            totalWins++;
-            showToast(`Won! Got ${tag1.name} + ${tag2.name}!`, 'success');
+        showToast(`Cashed out at ${crashMultiplierValue.toFixed(2)}x! Won ${winAmount}`, 'success');
+        playCashoutSound();
+
+        // Broadcast cashout to server
+        socket.emit('crash_cashout', {
+            user: userProfile?.username || 'You',
+            multiplier: crashMultiplierValue,
+            winAmount: winAmount
+        });
+    }
+
+    updateCrashUI();
+    renderBetsList();
+}
+
+function renderCrashLoop() {
+    const display = document.getElementById('crashMultiplier');
+    const status = document.getElementById('crashStatus');
+
+    if (display && status) {
+        if (crashState === CRASH_STATE.WAITING) {
+            display.textContent = '1.00x';
+            display.className = 'crash-multiplier';
+            status.textContent = `Starting in ${crashTimer.toFixed(1)}s`;
+            drawCrashGraph(0);
+        } else if (crashState === CRASH_STATE.RUNNING) {
+            display.textContent = crashMultiplierValue.toFixed(2) + 'x';
+            display.className = 'crash-multiplier';
+            status.textContent = 'Game running...';
+
+            const elapsed = (Date.now() - lastCrashStartT) / 1000;
+            drawCrashGraph(elapsed);
+        } else if (crashState === CRASH_STATE.CRASHED) {
+            display.textContent = crashMultiplierValue.toFixed(2) + 'x';
+            display.className = 'crash-multiplier crashed';
+            status.textContent = `Crashed! Waiting for next round...`;
+
+            // Assume end of graph is ~ log(M)/0.00006 from server math, but let's just draw based on current multiplier
+            const elapsed = Math.log(crashMultiplierValue) / 0.15;
+            drawCrashGraph(elapsed); // Show final state
+        }
+    }
+}
+
+function updateCrashUI() {
+    const btn = document.getElementById('crashBtn');
+    if (!btn) return;
+
+    if (crashState === CRASH_STATE.WAITING) {
+        if (myBetActive) {
+            btn.textContent = 'Cancel Bet';
+            btn.className = 'btn btn-danger';
         } else {
-            outcomeEl.innerHTML = `<span class="case-lose">💀 You lost! Opponent takes everything.</span>`;
-            showToast(`Lost the case battle!`, 'error');
+            btn.textContent = 'Place Bet';
+            btn.className = 'btn btn-play';
         }
+    } else if (crashState === CRASH_STATE.RUNNING) {
+        if (myBetActive && !myCrashCashedOut) {
+            btn.textContent = 'Cash Out';
+            btn.className = 'btn btn-cashout';
+        } else if (myBetActive && myCrashCashedOut) {
+            btn.textContent = 'Cashed Out';
+            btn.className = 'btn btn-outline';
+        } else {
+            btn.textContent = 'Betting Closed';
+            btn.className = 'btn btn-outline';
+        }
+    } else if (crashState === CRASH_STATE.CRASHED) {
+        btn.textContent = 'Game Over';
+        btn.className = 'btn btn-outline';
+    }
 
-        caseSpinning = false;
-        setTimeout(() => {
-            setCaseMode(caseMode);
-        }, 4000);
-    }, 3800);
+    const countLabel = document.getElementById('totalCrashPlayers');
+    if (countLabel) countLabel.textContent = `${liveBets.length} Players`;
 }
 
-function buildSpinReel(reelId, finalTag, tierId) {
-    const reel = document.getElementById(reelId);
-    if (!reel) return;
+function renderBetsList() {
+    const list = document.getElementById('crashBetsList');
+    if (!list) return;
+
     let html = '';
-    for (let i = 0; i < 28; i++) {
-        const t = getRandomTagForTier(tierId);
-        html += `<div class="case-tag-item" style="background:${t.color}20;color:${t.color};border:1px solid ${t.color}60;">${t.name}<span class="case-tag-val">${t.value}</span></div>`;
-    }
-    html += `<div class="case-tag-item case-tag-final" style="background:${finalTag.color}20;color:${finalTag.color};border:2px solid ${finalTag.color};">${finalTag.name}<span class="case-tag-val">${finalTag.value}</span></div>`;
-    for (let i = 0; i < 4; i++) {
-        const t = getRandomTagForTier(tierId);
-        html += `<div class="case-tag-item" style="background:${t.color}20;color:${t.color};border:1px solid ${t.color}60;">${t.name}<span class="case-tag-val">${t.value}</span></div>`;
-    }
-    reel.innerHTML = html;
-    reel.style.transition = 'none';
-    reel.style.transform = 'translateY(0px)';
-    reel.offsetHeight;
-    const itemH = 58;
-    setTimeout(() => {
-        reel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.6, 0.15, 1)';
-        reel.style.transform = `translateY(${-(28 * itemH)}px)`;
-    }, 100);
-}
 
-async function addToInventory(tag) {
-    if (!currentUser || !userProfile) return;
-    const inventory = userProfile.inventory || [];
-    inventory.push({
-        id: tag.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-        tagId: tag.id,
-        name: tag.name,
-        value: tag.value,
-        color: tag.color,
-        wonAt: new Date().toISOString()
-    });
-    userProfile.inventory = inventory;
-    try {
-        await supabase.update('profiles', { inventory }, `id=eq.${currentUser.id}`);
-    } catch (e) { console.error('Inventory save error:', e); }
-}
-
-// === SOCKET LISTENERS ===
-function initCaseSockets() {
-    if (!socket) return;
-
-    socket.on('case_lobbies', (battles) => {
-        renderLobby(battles);
+    // Sort: cashed out first, then active
+    const sorted = [...liveBets].sort((a, b) => {
+        if (a.cashedOut === b.cashedOut) return b.bet - a.bet;
+        return a.cashedOut ? -1 : 1;
     });
 
-    socket.on('case_battle_go', (data) => {
-        myOpenBattleId = null;
-        document.getElementById('caseCreateBtn').style.display = 'inline-flex';
-        document.getElementById('caseCancelBtn').style.display = 'none';
-        document.getElementById('caseWaiting').style.display = 'none';
+    sorted.forEach(b => {
+        let rowClass = 'crash-bet-row';
+        if (b.cashedOut) rowClass += ' cashed-out';
+        else if (crashState === CRASH_STATE.CRASHED) rowClass += ' crashed';
 
-        const tag1 = getTagFromSeed(data.seed1, data.caseTier);
-        const tag2 = getTagFromSeed(data.seed2, data.caseTier);
-        const iAmP1 = currentUser && currentUser.id === data.player1.id;
+        let mulText = '-';
+        let winText = b.bet;
 
-        navigateTo('cases');
-        runBattleAnimation(
-            data.player1.username, data.player2.username,
-            tag1, tag2, data.caseTier, iAmP1
-        );
-    });
-
-    socket.on('case_error', (msg) => {
-        showToast(msg, 'error');
-    });
-
-    socket.on('case_battle_cancelled', (data) => {
-        if (data.battleId === myOpenBattleId) {
-            const tier = CASE_TIERS.find(t => t.id === selectedCaseTier);
-            if (tier) updateBalance(userBalance + tier.cost);
-            myOpenBattleId = null;
-            showToast('Your battle was cancelled', 'info');
+        if (b.cashedOut) {
+            mulText = `${b.cashoutMul.toFixed(2)}x`;
+            winText = `<span class="crash-bet-mul win">+${b.winAmount}</span>`;
+        } else if (crashState === CRASH_STATE.CRASHED) {
+            mulText = 'CRASHED';
+            winText = `<span style="color:var(--danger)">-${b.bet}</span>`;
         }
+
+        // Build tag HTML — owner gets both tags
+        let tagHTML = '';
+        if (b.isOwner) {
+            tagHTML += '<span class="rank-tag rank-owner">OWNER</span>';
+        }
+        if (b.equippedRank && typeof getRankTagHTML === 'function') {
+            tagHTML += getRankTagHTML(false, b.equippedRank);
+        }
+
+        html += `
+            <div class="${rowClass}">
+                <div class="crash-bet-user">${tagHTML}${b.user}</div>
+                <div class="crash-bet-amount">${winText}</div>
+                <div class="crash-bet-mul ${b.cashedOut ? 'win' : ''}">${mulText}</div>
+            </div>
+        `;
     });
+
+    list.innerHTML = html;
+
+    const countLabel = document.getElementById('totalCrashPlayers');
+    if (countLabel) countLabel.textContent = `${liveBets.length} Players`;
 }
 
+function drawCrashGraph(elapsed) {
+    if (!crashCanvas || !crashCtx) return;
+    const w = crashCanvas.width;
+    const h = crashCanvas.height;
+    crashCtx.clearRect(0, 0, w, h);
+
+    crashCtx.fillStyle = '#1a1a3a';
+    crashCtx.fillRect(0, 0, w, h);
+
+    // Grid
+    crashCtx.strokeStyle = '#2a2a5a';
+    crashCtx.lineWidth = 0.5;
+    for (let i = 0; i < 5; i++) {
+        const y = h - (h / 5) * i;
+        crashCtx.beginPath();
+        crashCtx.moveTo(0, y);
+        crashCtx.lineTo(w, y);
+        crashCtx.stroke();
+    }
+
+    if (crashState === CRASH_STATE.WAITING && elapsed === 0) return;
+
+    // Draw line
+    crashCtx.strokeStyle = crashState === CRASH_STATE.CRASHED ? '#ff4757' : '#6c5ce7';
+    crashCtx.lineWidth = 3;
+    crashCtx.beginPath();
+
+    const points = Math.min(Math.floor(elapsed * 20), 200);
+    const maxM = Math.max(crashMultiplierValue, 2);
+    for (let i = 0; i <= points; i++) {
+        const t = (i / 200) * elapsed;
+        const m = Math.pow(Math.E, t * 0.15); // Match frontend visual curve rate
+        const x = (i / 200) * w;
+        const y = h - ((m - 1) / (maxM - 1)) * (h - 20);
+        if (i === 0) crashCtx.moveTo(x, Math.max(20, y));
+        else crashCtx.lineTo(x, Math.max(20, y));
+    }
+    crashCtx.stroke();
+}
+
+// Start global initialize
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(initCaseSockets, 1200);
+    setTimeout(initGlobalCrash, 1000); // slight delay to let Socket connect
 });
