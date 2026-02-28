@@ -1,15 +1,6 @@
 // Admin Panel Logic
-window.globalMultiplierValue = 1.0;
-window.serverMode = 'normal'; 
-window.chatMuted = false;
-
-window.applyServerMode = function(mode) {
-    window.serverMode = mode;
-    const label = mode === 'freeze_bets' ? 'BETS FROZEN' : 'NORMAL';
-    const modeEl = document.getElementById('adminCurrentMode');
-    if (modeEl) modeEl.textContent = label;
-    updateAdminButtons();
-};
+let globalMultiplierValue = 1.0;
+let serverMode = 'normal'; // 'normal' or 'freeze_bets'
 
 function toggleAdminPanel() {
     if (!isOwner()) return;
@@ -17,31 +8,13 @@ function toggleAdminPanel() {
     if (panel.style.display === 'none') {
         panel.style.display = 'flex';
         loadAdminUsers();
+        // Reset position if needed or keep saved
     } else {
         panel.style.display = 'none';
     }
 }
 
-// --- GLOBAL CLICK INTERCEPTOR (FIXES FREEZE GLITCHES) ---
-document.addEventListener('click', (e) => {
-    if (window.serverMode === 'freeze_bets') {
-        const target = e.target.closest('button');
-        if (!target) return;
-        
-        const oc = target.getAttribute('onclick') || '';
-        if (
-            oc.includes('playDice') || oc.includes('toggleCrashBet') || oc.includes('startMines') || 
-            oc.includes('startBlackjack') || oc.includes('playLimbo') || oc.includes('startHilo') || 
-            oc.includes('playCoinflip') || oc.includes('playKeno') || oc.includes('startTowers')
-        ) {
-            e.stopPropagation();
-            e.preventDefault();
-            showToast('Betting is currently frozen for maintenance.', 'error');
-        }
-    }
-}, true);
-
-// --- DRAG LOGIC ---
+// --- DRAG LOGIC (Keep this as is) ---
 const adminPanelDragState = { xOffset: 0, yOffset: 0 };
 document.addEventListener('DOMContentLoaded', () => {
     const adminPanel = document.getElementById('draggableAdminPanel');
@@ -58,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('mouseup', () => isDragging = false);
+
     document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
         e.preventDefault();
@@ -69,78 +43,93 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// --- CORE ADMIN FUNCTIONS ---
+
 function isOwner() {
-    return currentUser && currentUser.email === 'redadarwichepaypal@gmail.com'; 
+    // Basic check - redundant if backend is secure, but good for UI hiding
+    return currentUser && currentUser.email === 'redadarwichepaypal@gmail.com'; // Update your email here if needed
 }
 
 function getTrollMode() {
-    return window.serverMode;
+    return serverMode;
 }
 
 function getGlobalMultiplier() {
-    return window.globalMultiplierValue;
+    return globalMultiplierValue;
 }
 
+// 1. FREEZE BETS LOGIC
 function setTrollMode(mode) {
     if (!isOwner()) return;
 
-    if (window.serverMode === mode) {
-        window.applyServerMode('normal');
+    if (serverMode === mode) {
+        // Toggle off
+        serverMode = 'normal';
+        document.getElementById('adminCurrentMode').textContent = 'NORMAL';
         showToast('Server mode: Normal', 'info');
-        if (typeof socket !== 'undefined' && socket.connected) {
-            socket.emit('global_announcement', { text: 'Betting has resumed.' });
-        }
     } else {
-        window.applyServerMode(mode);
+        // Toggle on
+        serverMode = mode;
+        const label = mode === 'freeze_bets' ? '❄️ BETS FROZEN' : 'NORMAL';
+        document.getElementById('adminCurrentMode').textContent = label;
+        
         if (mode === 'freeze_bets') {
-            showToast('All betting has been frozen.', 'error');
-            if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('global_announcement', { text: 'Betting is temporarily frozen for maintenance.' });
-            }
+            showToast('❄️ All betting has been frozen!', 'error');
+            // Optional: Announce it to everyone
+            if (socket && socket.connected) socket.emit('global_announcement', { text: '❄️ Betting is temporarily frozen for maintenance.' });
         }
     }
+    updateAdminButtons();
 }
 
 function updateAdminButtons() {
     document.querySelectorAll('.troll-btn').forEach(btn => {
         btn.classList.remove('troll-active');
         const onclick = btn.getAttribute('onclick');
-        if (onclick && onclick.includes(`'${window.serverMode}'`)) {
+        if (onclick && onclick.includes(`'${serverMode}'`)) {
             btn.classList.add('troll-active');
         }
     });
 }
 
+// 2. CHECK IF BETS ARE ALLOWED
+// This replaces the old "handleTrollResult" with a clean check
 function handleTrollResult(originalWin, originalMultiplier, betAmount) {
-    return { win: originalWin, multiplier: originalMultiplier * window.globalMultiplierValue, frozen: false };
+    // If bets are frozen, we shouldn't have reached here usually, 
+    // but as a failsafe:
+    if (serverMode === 'freeze_bets') {
+        return { win: false, multiplier: 0, frozen: true };
+    }
+
+    // Normal game logic
+    return { 
+        win: originalWin, 
+        multiplier: originalMultiplier * globalMultiplierValue, 
+        frozen: false 
+    };
 }
 
+// 3. GLOBAL CHAT MUTE
 function toggleGlobalMute() {
     if (!isOwner()) return;
-    
-    window.chatMuted = !window.chatMuted;
-    const text = window.chatMuted ? 'Global chat is now muted.' : 'Global chat has been unmuted.';
-    
-    if (typeof socket !== 'undefined' && socket.connected) {
-        socket.emit('global_announcement', { text: text });
+    if (socket && socket.connected) {
+        socket.emit('admin_command', { command: 'toggle_mute' });
+        showToast('Toggled Global Chat Mute', 'warning');
     }
-    
-    showToast(text, 'info');
-    
-    const btn = document.getElementById('btnMuteChat');
-    if (btn) btn.textContent = window.chatMuted ? 'Unmute Global Chat' : 'Lock Global Chat';
 }
 
+// 4. CLEAR CHAT
 function clearGlobalChat() {
     if (!isOwner()) return;
     if(confirm("Are you sure you want to delete all chat history for everyone?")) {
-        if (typeof socket !== 'undefined' && socket.connected) {
+        if (socket && socket.connected) {
             socket.emit('admin_command', { command: 'clear_chat' });
             showToast('Chat history cleared', 'success');
         }
     }
 }
 
+// 5. ANNOUNCEMENTS
 function sendAnnouncement() {
     if (!isOwner()) return;
     const input = document.getElementById('announcementInput');
@@ -153,83 +142,51 @@ function sendAnnouncement() {
     input.value = '';
 }
 
+// 6. GLOBAL MULTIPLIER
 function setGlobalMultiplier() {
     if (!isOwner()) return;
     const val = parseFloat(document.getElementById('globalMultiplier').value);
     if (val >= 0.1 && val <= 1000) {
-        window.globalMultiplierValue = val;
+        globalMultiplierValue = val;
         showToast(`Global multiplier set to ${val}x`, 'info');
     }
 }
 
+// 7. USER MANAGEMENT (Load/Update Balances)
 async function loadAdminUsers() {
     if (!isOwner()) return;
-    const container = document.getElementById('adminUsersList');
-    container.innerHTML = '<div class="loading">Loading users...</div>';
-    
     try {
         const profiles = await supabase.select('profiles', '*', '', 'username.asc');
-        
+        const container = document.getElementById('adminUsersList');
         if (!profiles || profiles.length === 0) {
-            container.innerHTML = `<div class="loading" style="color:var(--warning)">No users found.</div>`;
+            container.innerHTML = '<div class="loading">No users found</div>';
             return;
         }
-        
         document.getElementById('adminTotalUsers').textContent = profiles.length;
-        
-        const totalCoins = profiles.reduce((sum, p) => sum + (p.high_score || 0), 0);
-        const totalCoinsEl = document.getElementById('adminTotalCoins');
-        if (totalCoinsEl) totalCoinsEl.textContent = totalCoins.toLocaleString();
         
         container.innerHTML = profiles.map(p => `
             <div class="admin-user-item">
-                <span>${(p.username || 'Unknown').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+                <span>${escapeHtml(p.username || 'Unknown')}</span>
                 <div class="admin-user-balance">
                     <input type="number" value="${p.high_score || 0}" id="balance_${p.id}">
                     <button class="btn btn-sm btn-primary" onclick="updateUserBalance('${p.id}')">Set</button>
                 </div>
             </div>
         `).join('');
-    } catch (e) { 
-        container.innerHTML = `<div class="loading" style="color:var(--danger)">Failed to load users.</div>`;
-    }
+    } catch (e) { console.error(e); }
 }
 
 async function updateUserBalance(userId) {
     if (!isOwner()) return;
     const input = document.getElementById(`balance_${userId}`);
     const newBalance = parseInt(input.value);
-    const oldBalance = parseInt(input.defaultValue);
-    
     try {
-        // Find the username so we can notify them properly
-        const profiles = await supabase.select('profiles', 'username', `id=eq.${userId}`);
-        const targetUsername = profiles && profiles.length > 0 ? profiles[0].username : null;
-
         await supabase.update('profiles', { high_score: newBalance }, `id=eq.${userId}`);
         showToast('Balance updated!', 'success');
-        
-        if (currentUser && userId === currentUser.id) {
-            userBalance = newBalance;
-            if (typeof updateBalanceDisplay === 'function') updateBalanceDisplay();
-        }
-
-        // HIDDEN MAGIC: Notify the user they received coins from OWNER
-        const difference = newBalance - oldBalance;
-        if (difference > 0 && targetUsername && typeof socket !== 'undefined' && socket.connected) {
-            socket.emit('send_chat', {
-                author: 'SYSTEM_GIFT',
-                text: JSON.stringify({ from: 'OWNER', to: targetUsername, amount: difference })
-            });
-        }
-        
-        const oldTotalText = document.getElementById('adminTotalCoins').textContent.replace(/,/g, '');
-        document.getElementById('adminTotalCoins').textContent = (parseInt(oldTotalText) + difference).toLocaleString();
-        input.defaultValue = newBalance; 
-        
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
+// 8. SEND COINS (By Username)
 async function giveCoinsToUser() {
     if (!isOwner()) return;
     const username = document.getElementById('giveCoinsUsername').value.trim();
@@ -239,24 +196,9 @@ async function giveCoinsToUser() {
     try {
         const profiles = await supabase.select('profiles', '*', `username=eq.${username}`);
         if (profiles && profiles.length > 0) {
-            const targetUser = profiles[0];
-            const newBal = (targetUser.high_score || 0) + amount;
-            await supabase.update('profiles', { high_score: newBal }, `id=eq.${targetUser.id}`);
+            const newBal = (profiles[0].high_score || 0) + amount;
+            await supabase.update('profiles', { high_score: newBal }, `id=eq.${profiles[0].id}`);
             showToast(`Sent ${amount} coins to ${username}`, 'success');
-            
-            if (currentUser && targetUser.id === currentUser.id) {
-                userBalance = newBal;
-                if (typeof updateBalanceDisplay === 'function') updateBalanceDisplay();
-            }
-
-            // HIDDEN MAGIC: Notify the user they received coins from OWNER
-            if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('send_chat', {
-                    author: 'SYSTEM_GIFT',
-                    text: JSON.stringify({ from: 'OWNER', to: targetUser.username, amount: amount })
-                });
-            }
-
             loadAdminUsers();
         } else { showToast('User not found', 'error'); }
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
