@@ -7,6 +7,7 @@ function toggleAdminPanel() {
     if (panel.style.display === 'none') {
         panel.style.display = 'flex';
         loadAdminUsers();
+        // Reset position if needed or keep saved
     } else {
         panel.style.display = 'none';
     }
@@ -51,7 +52,8 @@ function getGlobalMultiplier() {
     return globalMultiplierValue;
 }
 
-// CLEANED UP: Standard result handler (Freeze logic removed)
+// CHECK IF BETS ARE ALLOWED
+// Simplified: Just returns standard multipliers since freeze is removed
 function handleTrollResult(originalWin, originalMultiplier, betAmount) {
     return { 
         win: originalWin, 
@@ -60,12 +62,7 @@ function handleTrollResult(originalWin, originalMultiplier, betAmount) {
     };
 }
 
-// Function to return current troll mode (always normal now)
-function getTrollMode() {
-    return 'normal';
-}
-
-// 1. CLEAR CHAT
+// CLEAR CHAT
 function clearGlobalChat() {
     if (!isOwner()) return;
     if(confirm("Are you sure you want to delete all chat history for everyone?")) {
@@ -76,7 +73,7 @@ function clearGlobalChat() {
     }
 }
 
-// 2. ANNOUNCEMENTS
+// ANNOUNCEMENTS
 function sendAnnouncement() {
     if (!isOwner()) return;
     const input = document.getElementById('announcementInput');
@@ -89,7 +86,7 @@ function sendAnnouncement() {
     input.value = '';
 }
 
-// 3. GLOBAL MULTIPLIER
+// GLOBAL MULTIPLIER
 function setGlobalMultiplier() {
     if (!isOwner()) return;
     const val = parseFloat(document.getElementById('globalMultiplier').value);
@@ -99,7 +96,7 @@ function setGlobalMultiplier() {
     }
 }
 
-// 4. USER MANAGEMENT (Load Users)
+// USER MANAGEMENT (Load/Update Balances)
 async function loadAdminUsers() {
     if (!isOwner()) return;
     try {
@@ -123,41 +120,34 @@ async function loadAdminUsers() {
     } catch (e) { console.error(e); }
 }
 
-// 5. UPDATE USER BALANCE (Set specific amount)
 async function updateUserBalance(userId) {
     if (!isOwner()) return;
     const input = document.getElementById(`balance_${userId}`);
     const newBalance = parseInt(input.value);
     
     try {
-        // 1. Get current data to calculate diff
-        const currentData = await supabase.selectSingle('profiles', 'high_score, username', `id=eq.${userId}`);
-        const oldBalance = currentData.high_score || 0;
-        const diff = newBalance - oldBalance;
+        // Fetch old balance to calculate difference for notification
+        const { data: oldProfile } = await supabase.selectSingle('profiles', 'high_score', `id=eq.${userId}`);
+        const oldBal = oldProfile ? oldProfile.high_score : 0;
+        const diff = newBalance - oldBal;
 
-        // 2. Update DB
+        // Update DB
         await supabase.update('profiles', { high_score: newBalance }, `id=eq.${userId}`);
         
-        // 3. Send Notification via Socket
-        if (socket && socket.connected) {
-            // If we added money, treat as "Received". If we set/reduced, treat as "Set Balance".
-            const type = diff > 0 ? 'gift' : 'set_balance';
-            const amountToSend = diff > 0 ? diff : newBalance;
-
+        // Notify User via Socket if there was a change
+        if (socket && socket.connected && diff !== 0) {
             socket.emit('admin_command', { 
                 command: 'gift_coins', 
-                targetUsername: currentData.username,
                 targetId: userId,
-                amount: amountToSend,
-                type: type
+                amount: diff
             });
         }
 
-        showToast('Balance updated & user notified!', 'success');
+        showToast('Balance updated & User notified!', 'success');
     } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
-// 6. GIVE COINS (Add amount)
+// SEND COINS (By Username)
 async function giveCoinsToUser() {
     if (!isOwner()) return;
     const username = document.getElementById('giveCoinsUsername').value.trim();
@@ -173,14 +163,13 @@ async function giveCoinsToUser() {
             // 1. Update Database
             await supabase.update('profiles', { high_score: newBal }, `id=eq.${user.id}`);
             
-            // 2. Emit Socket Event for Notification (Triggers "You received..." message)
+            // 2. Emit Socket Event for Instant Notification
             if (socket && socket.connected) {
                 socket.emit('admin_command', { 
                     command: 'gift_coins', 
                     targetUsername: username, 
                     targetId: user.id,
-                    amount: amount,
-                    type: 'gift'
+                    amount: amount 
                 });
             }
 
