@@ -31,11 +31,17 @@ async function login() {
     }
 
     try {
+        // Since we fixed supabase.js, this will instantly throw if wrong credentials
         const data = await supabase.signIn(email, password);
+        
         currentUser = data.user;
         
-        // Final fallback incase the payload didn't assign the user correctly
-        if (!currentUser) currentUser = await supabase.getUser();
+        // Double check we actually got the token
+        if (!currentUser && supabase.accessToken) {
+            currentUser = await supabase.getUser();
+        }
+
+        if (!currentUser) throw new Error("Login failed to verify user session.");
 
         try {
             await loadProfile();
@@ -51,7 +57,6 @@ async function login() {
         showToast(e.message, 'error');
     }
 }
-
 
 async function signup() {
     const username = document.getElementById('signupUsername').value.trim();
@@ -76,13 +81,13 @@ async function signup() {
     try {
         let data = await supabase.signUp(email, password);
 
-        // If we didn't receive a token, sign in explicitly (Required for environments testing auto-login limits)
+        // If signup requires confirmation and didn't give us a token, try signing in.
         if (!supabase.accessToken) {
             try {
                 const loginData = await supabase.signIn(email, password);
                 data = loginData;
             } catch (loginErr) {
-                // Fails here usually because email confirmation is required by your Supabase backend settings
+                // Fails here because email confirmation is required or it was blocked
                 showToast('Account created! Please check your email to verify or try logging in.', 'info');
                 hideModal('signupModal');
                 return; // Stop right here! Prevent entering a ghost session
@@ -102,7 +107,6 @@ async function signup() {
                     updated_at: new Date().toISOString()
                 });
             } catch (profileErr) {
-                // Profile might already exist, try upsert
                 try {
                     await supabase.upsert('profiles', {
                         id: currentUser.id,
@@ -144,7 +148,6 @@ async function loadProfile() {
             userBalance = profile.high_score || 0;
             updateBalanceDisplay();
         } else {
-            // Create profile if not exists
             await supabase.insert('profiles', {
                 id: currentUser.id,
                 username: currentUser.email.split('@')[0],
@@ -156,8 +159,6 @@ async function loadProfile() {
             updateBalanceDisplay();
         }
     } catch (e) {
-        console.error('Load profile error:', e);
-        // Try creating profile
         try {
             await supabase.upsert('profiles', {
                 id: currentUser.id,
@@ -216,13 +217,10 @@ function updateAuthUI(loggedIn) {
             avatar.textContent = userProfile.username.charAt(0).toUpperCase();
         }
 
-        // Check if owner
-        console.log('Auth check - email:', currentUser.email, 'OWNER_EMAIL:', OWNER_EMAIL);
         if (currentUser.email === OWNER_EMAIL) {
             if (floatingAdminBtn) {
                 floatingAdminBtn.style.display = 'flex';
             } else {
-                // DOM might not be ready yet, retry after a short delay
                 setTimeout(() => {
                     const btn = document.getElementById('floatingAdminBtn');
                     if (btn) btn.style.display = 'flex';
@@ -247,16 +245,13 @@ function isOwner() {
     return currentUser && currentUser.email === OWNER_EMAIL;
 }
 
-// Ensure owner button shows up reliably
 function checkAndShowOwnerBtn() {
     const btn = document.getElementById('floatingAdminBtn');
     if (!btn) return;
     if (currentUser && currentUser.email === OWNER_EMAIL) {
         btn.style.display = 'flex';
-        console.log('Owner button activated for:', currentUser.email);
     }
 }
 
-// Run the owner check after a delay too, in case auth is slow
 setTimeout(checkAndShowOwnerBtn, 2000);
 setTimeout(checkAndShowOwnerBtn, 5000);
