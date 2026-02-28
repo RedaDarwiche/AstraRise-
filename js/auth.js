@@ -30,8 +30,14 @@ async function login() {
         return;
     }
 
+    // Disable button to prevent double clicks
+    const btn = document.querySelector('#loginModal .btn-primary');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Logging in...';
+    }
+
     try {
-        // Since we fixed supabase.js, this will instantly throw if wrong credentials
         const data = await supabase.signIn(email, password);
         
         currentUser = data.user;
@@ -55,6 +61,12 @@ async function login() {
         showToast('Welcome back!', 'success');
     } catch (e) {
         showToast(e.message, 'error');
+    } finally {
+        // Re-enable the button
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Login';
+        }
     }
 }
 
@@ -78,8 +90,21 @@ async function signup() {
         return;
     }
 
+    // Disable button to prevent double-click "random closes"
+    const btn = document.querySelector('#signupModal .btn-primary');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Creating Account...';
+    }
+
     try {
         let data = await supabase.signUp(email, password);
+
+        // CATCH SILENT FAILURES: 
+        // Supabase returns 200 OK with an empty identities array if the email already exists to prevent email enumeration.
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+            throw new Error("Email is already registered. Please log in.");
+        }
 
         // If signup requires confirmation and didn't give us a token, try signing in.
         if (!supabase.accessToken) {
@@ -87,8 +112,8 @@ async function signup() {
                 const loginData = await supabase.signIn(email, password);
                 data = loginData;
             } catch (loginErr) {
-                // Fails here because email confirmation is required or it was blocked
-                showToast('Account created! Please check your email to verify or try logging in.', 'info');
+                // Fails here because email confirmation is required by Supabase settings
+                showToast('Account created! Please check your email to verify.', 'info');
                 hideModal('signupModal');
                 return; // Stop right here! Prevent entering a ghost session
             }
@@ -107,6 +132,7 @@ async function signup() {
                     updated_at: new Date().toISOString()
                 });
             } catch (profileErr) {
+                // Profile might already exist, try upsert
                 try {
                     await supabase.upsert('profiles', {
                         id: currentUser.id,
@@ -125,7 +151,14 @@ async function signup() {
         hideModal('signupModal');
         showToast('Account created! You received 100 Astraphobia coins!', 'success');
     } catch (e) {
+        // We DO NOT close the modal here, so the user can easily see the error and fix their typo
         showToast(e.message, 'error');
+    } finally {
+        // Re-enable the button
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Create Account';
+        }
     }
 }
 
@@ -148,6 +181,7 @@ async function loadProfile() {
             userBalance = profile.high_score || 0;
             updateBalanceDisplay();
         } else {
+            // Create profile if not exists
             await supabase.insert('profiles', {
                 id: currentUser.id,
                 username: currentUser.email.split('@')[0],
@@ -159,6 +193,8 @@ async function loadProfile() {
             updateBalanceDisplay();
         }
     } catch (e) {
+        console.error('Load profile error:', e);
+        // Try creating profile
         try {
             await supabase.upsert('profiles', {
                 id: currentUser.id,
@@ -217,10 +253,12 @@ function updateAuthUI(loggedIn) {
             avatar.textContent = userProfile.username.charAt(0).toUpperCase();
         }
 
+        // Check if owner
         if (currentUser.email === OWNER_EMAIL) {
             if (floatingAdminBtn) {
                 floatingAdminBtn.style.display = 'flex';
             } else {
+                // DOM might not be ready yet, retry after a short delay
                 setTimeout(() => {
                     const btn = document.getElementById('floatingAdminBtn');
                     if (btn) btn.style.display = 'flex';
@@ -245,6 +283,7 @@ function isOwner() {
     return currentUser && currentUser.email === OWNER_EMAIL;
 }
 
+// Ensure owner button shows up reliably
 function checkAndShowOwnerBtn() {
     const btn = document.getElementById('floatingAdminBtn');
     if (!btn) return;
@@ -253,5 +292,6 @@ function checkAndShowOwnerBtn() {
     }
 }
 
+// Run the owner check after a delay too, in case auth is slow
 setTimeout(checkAndShowOwnerBtn, 2000);
 setTimeout(checkAndShowOwnerBtn, 5000);
