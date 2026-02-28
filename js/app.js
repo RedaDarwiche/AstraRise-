@@ -2,7 +2,6 @@
 const audioBet = new Audio('sounds/bet.mp3');
 const audioCashout = new Audio('sounds/cashout.mp3');
 
-// Fallback for games still checking this (always normal)
 window.serverMode = 'normal';
 
 function playBetSound() {
@@ -15,11 +14,7 @@ function playCashoutSound() {
     audioCashout.play().catch(e => console.warn("Sound blocked:", e));
 }
 
-// ============================================
-// AstraRise - Core Application Logic
-// ============================================
-
-// Navigation - SPA page routing
+// Navigation
 function navigateTo(page) {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
     const target = document.getElementById('page-' + page);
@@ -46,16 +41,15 @@ function navigateTo(page) {
         case 'admin': if (typeof loadAdminUsers === 'function') loadAdminUsers(); break;
         case 'roulette': if (typeof initRouletteWheel === 'function') initRouletteWheel(); break;
         case 'keno': if (typeof initKenoGrid === 'function') initKenoGrid(); break;
-        case 'wheel': if (typeof initWheelCanvas === 'function') initWheelCanvas(); break;
         case 'home': loadHomeStats(); break;
         case 'leaderboard': if (typeof loadLeaderboard === 'function') loadLeaderboard(); break;
         case 'shop': if (typeof renderShop === 'function') renderShop(); break;
+        case 'inventory': if (typeof loadInventoryPage === 'function') loadInventoryPage(); break;
     }
     window.scrollTo(0, 0);
 }
 
 // --- MODAL CONTROLS ---
-
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -64,6 +58,14 @@ function showModal(modalId) {
             const input = modal.querySelector('input');
             if (input) input.focus();
         }, 100);
+    }
+    // Refresh vault display when opening vault
+    if (modalId === 'vaultModal' && typeof updateVaultDisplay === 'function') {
+        updateVaultDisplay();
+    }
+    // Load donation notifications when opening donate modal
+    if (modalId === 'donateModal' && typeof loadDonateNotifications === 'function') {
+        loadDonateNotifications();
     }
 }
 
@@ -151,39 +153,36 @@ async function initApp() {
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     
-    // SERVER EVENT LISTENERS
     if (typeof socket !== 'undefined') {
-        // 1. Gift Notification (Sent by Admin)
         socket.on('gift_notification', async (data) => {
             if (currentUser && userProfile) {
-                // If targeted specifically OR if checking ID
                 if (userProfile.username === data.targetUsername || currentUser.id === data.targetId) {
                     playCashoutSound();
-                    
                     const amount = data.amount;
-                    let msg = "";
-                    
                     const ownerTag = '<span class="rank-tag rank-owner" style="margin:0 4px; vertical-align: baseline;">OWNER</span>';
-                    
-                    if (amount > 0) {
-                        msg = `Received ${amount} Astraphobia from ${ownerTag} Astraphobia`;
-                    } else {
-                        // Handle adjustments where money is taken (just in case)
-                        msg = `Balance adjusted by ${amount} by ${ownerTag}`;
-                    }
-
+                    let msg = amount > 0 
+                        ? `Received ${amount} Astraphobia from ${ownerTag} Astraphobia`
+                        : `Balance adjusted by ${amount} by ${ownerTag}`;
                     showToast(msg, 'success');
-                    
                     if (typeof loadProfile === 'function') await loadProfile();
                 }
             }
         });
         
-        // 3. Global Announcements
         socket.on('global_announcement', (data) => {
-             if (typeof showAnnouncementBanner === 'function') {
-                 showAnnouncementBanner(data.text);
-             }
+            if (typeof showAnnouncementBanner === 'function') {
+                showAnnouncementBanner(data.text);
+            }
+        });
+        
+        // Donation received notification via socket
+        socket.on('donation_received', async (data) => {
+            if (currentUser && (currentUser.id === data.toUserId || 
+                (userProfile && userProfile.username === data.toUsername))) {
+                playCashoutSound();
+                showToast(`❤️ ${data.fromUsername} donated ${data.amount.toLocaleString()} Astraphobia to you!`, 'success');
+                if (typeof loadProfile === 'function') await loadProfile();
+            }
         });
     }
 });
