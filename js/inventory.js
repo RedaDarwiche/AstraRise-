@@ -1,4 +1,4 @@
-// Inventory System - Fixed claim integration with shop
+// Inventory System - Fixed: actions always visible, no hover disappear bug
 function loadInventoryPage() {
     const container = document.getElementById('inventoryItems');
     if (!container) return;
@@ -22,19 +22,17 @@ function loadInventoryPage() {
         const alreadyOwned = ownedRanks.includes(item.tagId);
 
         html += `
-            <div class="inventory-item"
-                 onmouseenter="showInventoryActions(${index})"
-                 onmouseleave="hideInventoryActions(${index})">
+            <div class="inventory-item">
                 <div class="inventory-tag" style="background:${item.color}20;color:${item.color};border:1px solid ${item.color}60;">
                     ${escapeHtml(item.name)}
                 </div>
-                <div class="inventory-value">${item.value} Astraphobia</div>
-                <div class="inventory-actions" id="invActions_${index}">
+                <div class="inventory-value">${item.value.toLocaleString()} Astraphobia</div>
+                <div class="inventory-actions-always">
                     ${alreadyOwned ?
-                        `<span style="color:var(--text-muted);font-size:0.8em;">Already owned</span>
-                         <button class="btn btn-sm btn-cashout" onclick="sellInventoryItem(${index})">Sell (${item.value})</button>` :
+                        `<span class="inventory-owned-label">Already owned</span>
+                         <button class="btn btn-sm btn-cashout" onclick="sellInventoryItem(${index})">Sell (${item.value.toLocaleString()})</button>` :
                         `<button class="btn btn-sm btn-primary" onclick="claimInventoryItem(${index})">Claim Tag</button>
-                         <button class="btn btn-sm btn-cashout" onclick="sellInventoryItem(${index})">Sell (${item.value})</button>`
+                         <button class="btn btn-sm btn-cashout" onclick="sellInventoryItem(${index})">Sell (${item.value.toLocaleString()})</button>`
                     }
                 </div>
             </div>
@@ -42,16 +40,6 @@ function loadInventoryPage() {
     });
 
     container.innerHTML = html;
-}
-
-function showInventoryActions(index) {
-    const el = document.getElementById(`invActions_${index}`);
-    if (el) el.style.display = 'flex';
-}
-
-function hideInventoryActions(index) {
-    const el = document.getElementById(`invActions_${index}`);
-    if (el) el.style.display = 'none';
 }
 
 async function sellInventoryItem(index) {
@@ -77,7 +65,7 @@ async function sellInventoryItem(index) {
         console.error('Sell item error:', e);
     }
 
-    showToast(`Sold ${item.name} for ${sellValue} Astraphobia!`, 'success');
+    showToast(`Sold ${item.name} for ${sellValue.toLocaleString()} Astraphobia!`, 'success');
     playCashoutSound();
     loadInventoryPage();
 }
@@ -99,7 +87,6 @@ async function claimInventoryItem(index) {
             showToast(`Claimed ${item.name} tag! Go to Shop to equip it.`, 'success');
         } else {
             showToast(`You already own ${item.name}. Selling instead.`, 'info');
-            // Auto-sell duplicates
             await updateBalance(userBalance + item.value);
         }
     }
