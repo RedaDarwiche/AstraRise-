@@ -59,19 +59,19 @@ async function playRoulette(choice) {
     const result = ROULETTE_NUMBERS[resultIndex];
 
     const track = document.getElementById('rouletteTrack');
-    const numEl = track.querySelector('.roulette-num');
-    const numWidth = numEl ? numEl.offsetWidth + 4 : 64;
+    const numWidth = 64;
     const totalNums = ROULETTE_NUMBERS.length;
 
     const targetRepetition = 25;
     const targetPos = (targetRepetition * totalNums + resultIndex) * numWidth;
-    const containerWidth = track.parentElement.offsetWidth;
+    const wrapper = track.parentElement;
+    const containerWidth = wrapper ? wrapper.offsetWidth : 500;
     const centerOffset = containerWidth / 2 - numWidth / 2;
     const finalTranslate = -(targetPos - centerOffset);
 
     track.style.transition = 'none';
     track.style.transform = 'translateX(0px)';
-    track.offsetHeight;
+    void track.offsetHeight;
 
     track.style.transition = 'transform 4s cubic-bezier(0.15, 0.6, 0.15, 1)';
     track.style.transform = `translateX(${finalTranslate}px)`;
