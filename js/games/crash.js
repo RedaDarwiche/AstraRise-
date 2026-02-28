@@ -119,6 +119,11 @@ function continuousRender() {
 function toggleCrashBet() {
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
 
+    // ADD THIS BLOCK
+    if (window.serverMode === 'freeze_bets') {
+        showToast('❄️ Betting is currently frozen for maintenance!', 'error');
+        return;
+    }
     if (crashState === CRASH_STATE.RUNNING && myBetActive && !myCrashCashedOut) {
         cashoutCrashUser();
         return;
