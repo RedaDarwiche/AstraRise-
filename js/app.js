@@ -183,5 +183,55 @@ async function initApp() {
     navigateTo('home');
 }
 
-// Start app when DOM is ready
-document.addEventListener('DOMContentLoaded', initApp);
+// --- INITIALIZATION ---
+let currentUser = null;
+let userProfile = null;
+let userBalance = 0;
+// Replace your email here for Admin/Owner check
+const OWNER_EMAIL = "redadarwichepaypal@gmail.com"; 
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Check Session
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session) {
+        currentUser = session.user;
+        
+        // 2. Get Profile & Balance
+        const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+        if (data) {
+            userProfile = data;
+            userBalance = data.high_score || 0;
+            
+            // UPDATE UI
+            document.getElementById('authButtons').style.display = 'none';
+            document.getElementById('userMenu').style.display = 'flex';
+            document.getElementById('balanceDisplay').style.display = 'flex';
+            document.getElementById('balanceAmount').textContent = userBalance;
+            document.getElementById('userAvatar').textContent = data.username.charAt(0).toUpperCase();
+
+            // SHOW ADMIN BUTTON IF OWNER
+            if (currentUser.email === OWNER_EMAIL) {
+                const adminBtn = document.getElementById('floatingAdminBtn');
+                if (adminBtn) adminBtn.style.display = 'flex';
+            }
+        }
+        
+        // 3. Connect Chat
+        if (typeof initChat === 'function') initChat();
+    }
+});
+
+// Helper to update balance visually and in DB
+async function updateBalance(newAmount) {
+    if (!currentUser) return;
+    userBalance = newAmount;
+    document.getElementById('balanceAmount').textContent = userBalance;
+    
+    await supabase.from('profiles').update({ high_score: newAmount }).eq('id', currentUser.id);
+}
