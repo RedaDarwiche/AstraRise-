@@ -22,12 +22,6 @@ function startMines() {
     if (!currentUser) { showToast('Please login to play', 'error'); return; }
     if (minesGameActive) return;
 
-    // FREEZE CHECK
-    if (window.serverMode === 'freeze_bets') {
-        showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
-        return;
-    }
-
     const bet = parseInt(document.getElementById('minesBet').value);
     if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
     if (bet > userBalance) { showToast('Insufficient balance', 'error'); return; }
@@ -40,20 +34,14 @@ function startMines() {
     totalWagered += bet;
     playBetSound();
 
-    // Place mines
-    const trollMode = getTrollMode();
+    // Place mines (Standard Random Logic)
     minePositions = [];
-
-    if (trollMode === 'all_mines') {
-        for (let i = 0; i < 25; i++) minePositions.push(i);
-    } else {
-        const positions = Array.from({ length: 25 }, (_, i) => i);
-        for (let i = positions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [positions[i], positions[j]] = [positions[j], positions[i]];
-        }
-        minePositions = positions.slice(0, minesNumMines);
+    const positions = Array.from({ length: 25 }, (_, i) => i);
+    for (let i = positions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [positions[i], positions[j]] = [positions[j], positions[i]];
     }
+    minePositions = positions.slice(0, minesNumMines);
 
     revealedTiles = [];
     minesCurrentMultiplier = 1.0;
@@ -77,8 +65,8 @@ function clickMine(index) {
     // Check baseline win
     let isWin = !isMine;
 
-    // Calculate what multiplier WOULD be if safe
-    const safeCount = revealedTiles.length + 1; // +1 because we are calculating the multiplier for THIS click
+    // Calculate multiplier
+    const safeCount = revealedTiles.length + 1;
     const totalSafe = 25 - minesNumMines;
     let baselineMultiplier = 1;
     for (let i = 0; i < safeCount; i++) {
@@ -86,24 +74,21 @@ function clickMine(index) {
     }
     baselineMultiplier *= 0.97; // 3% house edge
 
-    // Apply troll logic
     const tResult = handleTrollResult(isWin, baselineMultiplier, minesBetAmount);
-    if (tResult.frozen) return;
-
+    
     isWin = tResult.win;
     isMine = !isWin;
 
-    // Force tile to match outcome
+    // Adjust mine position if logic forced a win/loss different from random
     if (isMine && !minePositions.includes(index)) {
-        minePositions[0] = index; // Move a mine here
+        minePositions[0] = index; 
     } else if (!isMine && minePositions.includes(index)) {
-        // Move mine somewhere else unrevealed
         const unrevealed = Array.from({ length: 25 }, (_, i) => i)
             .filter(i => !revealedTiles.includes(i) && !minePositions.includes(i) && i !== index);
         if (unrevealed.length > 0) {
             minePositions[minePositions.indexOf(index)] = unrevealed[0];
         } else {
-            isMine = true; // Can't prevent it
+            isMine = true;
         }
     }
 
@@ -132,8 +117,6 @@ function clickMine(index) {
         tiles[index].innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/></svg>';
 
         minesCurrentMultiplier = tResult.multiplier;
-
-        // Ensure multiplier is at least 1.01x if we hit a safe tile to avoid negative profit visually
         if (minesCurrentMultiplier < 1.01) minesCurrentMultiplier = 1.01;
 
         const effectiveMultiplier = minesCurrentMultiplier * getGlobalMultiplier();
@@ -142,7 +125,6 @@ function clickMine(index) {
         let profit = (minesBetAmount * effectiveMultiplier) - minesBetAmount;
         document.getElementById('minesProfit').textContent = Math.max(0, profit).toFixed(2);
 
-        // Check if all safe tiles revealed
         if (revealedTiles.length >= totalSafe) {
             cashoutMines();
         }
@@ -173,5 +155,4 @@ function cashoutMines() {
     showToast(`Cashed out! Won ${winAmount} Astraphobia!`, 'success');
 }
 
-// Initialize
 initMinesGrid();
