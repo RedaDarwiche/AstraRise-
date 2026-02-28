@@ -376,7 +376,7 @@
                     <div class="admin-section"><h3>🛡️ Server Security & Moderation</h3><div class="troll-grid" style="grid-template-columns: repeat(2, 1fr);"><button class="btn troll-btn troll-gold" onclick="clearGlobalChat()">🧹 Clear Chat History</button></div></div>
                     <div class="admin-section"><h3>Give Coins to User</h3><div class="admin-controls-grid"><div class="bet-input-group"><label>Username</label><input type="text" id="giveCoinsUsername" class="bet-input" placeholder="Enter username"></div><div class="bet-input-group"><label>Amount</label><input type="number" id="giveCoinsAmount2" min="1" class="bet-input" value="1000"></div><button class="btn btn-primary" onclick="giveCoinsToUser()" style="align-self: flex-end; padding: 12px;">Send Coins</button></div></div>
                     <div class="admin-section"><h3>User Management</h3><button class="btn btn-outline" onclick="loadAdminUsers()">Refresh Users</button><div class="admin-users-list" id="adminUsersList"></div></div>
-                    <div class="admin-section"><h3>Forum Moderation</h3><button class="btn btn-danger" onclick="deleteAllPosts()">Delete All Posts</button></div>
+                   <div class="admin-section"><h3>⚠️ Danger Zone</h3><button class="btn btn-danger" onclick="resetAllBalances()" style="margin-bottom:10px;width:100%;">🔄 Reset ALL User Balances to 100</button><button class="btn btn-danger" onclick="deleteAllPosts()" style="width:100%;">🗑️ Delete All Forum Posts</button></div>
                 </div>
             </div>
         </main>
@@ -417,11 +417,11 @@
                     </div>
                     <div class="vault-passive-info">
                         <span class="vault-passive-rate" id="vaultPassiveRate">+0/sec</span>
-                                                <span class="vault-passive-label">Passive Income (2% online, 1% offline)</span>
+                                                <span class="vault-passive-label">Passive Income (0.5% online only, no offline earnings)</span>
                     </div>
                     <div class="vault-offline-earnings" id="vaultOfflineEarnings" style="display:none;">
-                        <span>💤 While you were away, you earned:</span>
-                        <span class="vault-offline-amount" id="vaultOfflineAmount">0</span>
+                        <span>Vault does not earn offline.</span>
+                        <span class="vault-offline-amount" id="vaultOfflineAmount"></span>
                     </div>
                 </div>
                 <div class="vault-actions">
