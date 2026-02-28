@@ -140,6 +140,12 @@ function toggleCrashBet() {
         return;
     }
 
+    // FREEZE CHECK
+    if (window.serverMode === 'freeze_bets') {
+        showToast('❄️ Betting is currently frozen by the Administrator.', 'error');
+        return;
+    }
+
     const bet = parseInt(document.getElementById('crashBet').value);
     if (!bet || bet < 1) { showToast('Minimum bet is 1', 'error'); return; }
     if (bet > userBalance) { showToast('Insufficient balance', 'error'); return; }
@@ -154,7 +160,7 @@ function toggleCrashBet() {
     playBetSound();
     myCrashCashedOut = false;
 
-    const isOwnerUser = currentUser && currentUser.email === OWNER_EMAIL;
+    const isOwnerUser = currentUser && currentUser.email === 'redadarwichepaypal@gmail.com';
     const myBetData = {
         user: userProfile?.username || 'You',
         bet: bet,
