@@ -1,5 +1,3 @@
-// --- START OF FILE auth.js ---
-
 // Auth State
 let currentUser = null;
 let userProfile = null;
@@ -34,19 +32,7 @@ async function login() {
 
     try {
         const data = await supabase.signIn(email, password);
-        
-        // 1. Try to get user from response
         currentUser = data.user;
-        
-        // 2. Fallback: If user object is missing but we have a token, fetch user explicitly
-        if (!currentUser && (data.access_token || localStorage.getItem('sb_access_token'))) {
-            currentUser = await supabase.getUser();
-        }
-
-        if (!currentUser) {
-            throw new Error('Login failed: Unable to retrieve user details.');
-        }
-
         try {
             await loadProfile();
         } catch (profileErr) {
@@ -54,13 +40,11 @@ async function login() {
             // Still show logged-in UI even if profile fetch fails
             userBalance = 0;
         }
-        
         updateAuthUI(true);
         hideModal('loginModal');
         showToast('Welcome back!', 'success');
     } catch (e) {
-        console.error("Login Error:", e);
-        showToast(e.message || 'Login failed', 'error');
+        showToast(e.message, 'error');
     }
 }
 
@@ -101,11 +85,6 @@ async function signup() {
                 hideModal('signupModal');
                 return;
             }
-        }
-
-        // Fallback safety for signup flow as well
-        if (!currentUser && (data.access_token || localStorage.getItem('sb_access_token'))) {
-            currentUser = await supabase.getUser();
         }
 
         // Create profile
@@ -219,7 +198,6 @@ function updateAuthUI(loggedIn) {
     const floatingAdminBtn = document.getElementById('floatingAdminBtn');
     const createPostBtn = document.getElementById('createPostBtn');
 
-    // Ensure logic handles potential null currentUser gracefully
     if (loggedIn && currentUser) {
         authButtons.style.display = 'none';
         userMenu.style.display = 'flex';
@@ -231,13 +209,11 @@ function updateAuthUI(loggedIn) {
         const avatar = document.getElementById('userAvatar');
         if (userProfile && userProfile.username) {
             avatar.textContent = userProfile.username.charAt(0).toUpperCase();
-        } else if (currentUser.email) {
-            avatar.textContent = currentUser.email.charAt(0).toUpperCase();
         }
 
         // Check if owner
-        const isOwnerUser = currentUser.email === OWNER_EMAIL;
-        if (isOwnerUser) {
+        console.log('Auth check - email:', currentUser.email, 'OWNER_EMAIL:', OWNER_EMAIL);
+        if (currentUser.email === OWNER_EMAIL) {
             if (floatingAdminBtn) {
                 floatingAdminBtn.style.display = 'flex';
             } else {
