@@ -1,4 +1,4 @@
-// Roulette Game - Fixed Visual
+// Roulette Game - Fixed visual
 const ROULETTE_NUMBERS = [
     { num: 0, color: 'green' },
     { num: 1, color: 'red' }, { num: 2, color: 'black' }, { num: 3, color: 'red' }, { num: 4, color: 'black' },
@@ -9,7 +9,6 @@ const ROULETTE_NUMBERS = [
 
 let rouletteSpinning = false;
 let rouletteHistory = [];
-const R_TILE_W = 70; // tile width + gap
 
 function initRouletteWheel() {
     const track = document.getElementById('rouletteTrack');
@@ -18,9 +17,9 @@ function initRouletteWheel() {
     let html = '';
     for (let rep = 0; rep < 40; rep++) {
         ROULETTE_NUMBERS.forEach(item => {
-            const cls = item.color === 'green' ? 'roulette-num-green' :
-                        item.color === 'red' ? 'roulette-num-red' : 'roulette-num-black';
-            html += `<div class="roulette-num ${cls}">${item.num}</div>`;
+            const colorClass = item.color === 'green' ? 'roulette-num-green' :
+                              item.color === 'red' ? 'roulette-num-red' : 'roulette-num-black';
+            html += `<div class="roulette-num ${colorClass}">${item.num}</div>`;
         });
     }
     track.innerHTML = html;
@@ -33,11 +32,14 @@ function initRouletteWheel() {
 function renderRouletteHistory() {
     const histEl = document.getElementById('rouletteHistory');
     if (!histEl) return;
-    histEl.innerHTML = rouletteHistory.slice(0, 12).map(item => {
+
+    let html = '';
+    rouletteHistory.slice(0, 10).forEach(item => {
         const cls = item.color === 'green' ? 'roulette-hist-green' :
                    item.color === 'red' ? 'roulette-hist-red' : 'roulette-hist-black';
-        return `<div class="roulette-hist-item ${cls}">${item.num}</div>`;
-    }).join('');
+        html += `<div class="roulette-hist-item ${cls}">${item.num}</div>`;
+    });
+    histEl.innerHTML = html;
 }
 
 async function playRoulette(choice) {
@@ -57,33 +59,43 @@ async function playRoulette(choice) {
     const result = ROULETTE_NUMBERS[resultIndex];
 
     const track = document.getElementById('rouletteTrack');
+    const numEl = track.querySelector('.roulette-num');
+    const numWidth = numEl ? numEl.offsetWidth + 4 : 64;
     const totalNums = ROULETTE_NUMBERS.length;
-    const targetRep = 25;
-    const targetTileIndex = targetRep * totalNums + resultIndex;
-    const targetCenter = targetTileIndex * R_TILE_W + R_TILE_W / 2;
-    const containerW = track.parentElement.offsetWidth;
-    const finalX = -(targetCenter - containerW / 2);
+
+    const targetRepetition = 25;
+    const targetPos = (targetRepetition * totalNums + resultIndex) * numWidth;
+    const containerWidth = track.parentElement.offsetWidth;
+    const centerOffset = containerWidth / 2 - numWidth / 2;
+    const finalTranslate = -(targetPos - centerOffset);
 
     track.style.transition = 'none';
     track.style.transform = 'translateX(0px)';
     track.offsetHeight;
 
     track.style.transition = 'transform 4s cubic-bezier(0.15, 0.6, 0.15, 1)';
-    track.style.transform = `translateX(${finalX}px)`;
+    track.style.transform = `translateX(${finalTranslate}px)`;
 
     document.getElementById('rouletteResult').textContent = 'Spinning...';
     document.getElementById('rouletteResult').style.color = 'var(--text-secondary)';
 
     setTimeout(() => {
         rouletteSpinning = false;
+
         rouletteHistory.unshift(result);
         if (rouletteHistory.length > 20) rouletteHistory.pop();
         renderRouletteHistory();
 
-        let won = false, winAmount = 0;
-        if (choice === 'green' && result.color === 'green') { won = true; winAmount = bet * 14; }
-        else if (choice === 'red' && result.color === 'red') { won = true; winAmount = bet * 2; }
-        else if (choice === 'black' && result.color === 'black') { won = true; winAmount = bet * 2; }
+        let won = false;
+        let winAmount = 0;
+
+        if (choice === 'green' && result.color === 'green') {
+            won = true; winAmount = bet * 14;
+        } else if (choice === 'red' && result.color === 'red') {
+            won = true; winAmount = bet * 2;
+        } else if (choice === 'black' && result.color === 'black') {
+            won = true; winAmount = bet * 2;
+        }
 
         const resEl = document.getElementById('rouletteResult');
         if (won) {
