@@ -1,5 +1,3 @@
-// --- START OF FILE supabase.js ---
-
 // Supabase Client
 const SUPABASE_URL = 'https://jppfsqkshcmwskcdsqis.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwcGZzcWtzaGNtd3NrY2RzcWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MjczMzgsImV4cCI6MjA4NjUwMzMzOH0.ACkiOnXuKGnzKTqi2HSLggktIzrRWOFLje-dp20dpqU';
@@ -9,7 +7,7 @@ class SupabaseClient {
     constructor(url, key) {
         this.url = url;
         this.key = key;
-        this.accessToken = localStorage.getItem('sb_access_token');
+        this.accessToken = null;
         this.user = null;
     }
 
@@ -28,19 +26,13 @@ class SupabaseClient {
             headers: { 'Content-Type': 'application/json', 'apikey': this.key },
             body: JSON.stringify({ email, password, options: { data: {} } })
         });
-        
         const data = await res.json();
-        
-        if (!res.ok) {
-            throw new Error(data.msg || data.message || data.error_description || data.error || 'Signup failed');
-        }
-
+        if (data.error) throw new Error(data.error.message || data.msg || 'Signup failed');
         if (data.access_token) {
             this.accessToken = data.access_token;
             this.user = data.user;
-            localStorage.setItem('sb_access_token', data.access_token);
-            if (data.refresh_token) localStorage.setItem('sb_refresh_token', data.refresh_token);
         } else if (data.user) {
+            // Auto-confirm might give us user but no token, try logging in
             this.user = data.user;
         }
         return data;
@@ -52,14 +44,8 @@ class SupabaseClient {
             headers: { 'Content-Type': 'application/json', 'apikey': this.key },
             body: JSON.stringify({ email, password })
         });
-        
         const data = await res.json();
-        
-        if (!res.ok) {
-            // Checks for specific Supabase error fields
-            throw new Error(data.error_description || data.msg || data.message || data.error || 'Login failed');
-        }
-
+        if (data.error) throw new Error(data.error.message || data.error_description || 'Login failed');
         this.accessToken = data.access_token;
         this.user = data.user;
         localStorage.setItem('sb_access_token', data.access_token);
@@ -83,22 +69,14 @@ class SupabaseClient {
     async getUser() {
         const token = this.accessToken || localStorage.getItem('sb_access_token');
         if (!token) return null;
-        
         this.accessToken = token;
-        
         const res = await fetch(`${this.url}/auth/v1/user`, {
             headers: { 'Authorization': `Bearer ${token}`, 'apikey': this.key }
         });
-        
         if (!res.ok) {
-            // Try refresh if token invalid
+            // Try refresh
             const refreshed = await this.refreshToken();
-            if (!refreshed) {
-                // Clear invalid tokens
-                this.signOut();
-                return null;
-            }
-            // Retry with new token
+            if (!refreshed) return null;
             const res2 = await fetch(`${this.url}/auth/v1/user`, {
                 headers: { 'Authorization': `Bearer ${this.accessToken}`, 'apikey': this.key }
             });
@@ -106,7 +84,6 @@ class SupabaseClient {
             this.user = await res2.json();
             return this.user;
         }
-        
         this.user = await res.json();
         return this.user;
     }
@@ -120,14 +97,7 @@ class SupabaseClient {
                 headers: { 'Content-Type': 'application/json', 'apikey': this.key },
                 body: JSON.stringify({ refresh_token: refreshToken })
             });
-            
             const data = await res.json();
-            
-            if (!res.ok) {
-                console.warn('Refresh token failed:', data);
-                return false;
-            }
-
             if (data.access_token) {
                 this.accessToken = data.access_token;
                 this.user = data.user;
@@ -135,9 +105,7 @@ class SupabaseClient {
                 localStorage.setItem('sb_refresh_token', data.refresh_token);
                 return true;
             }
-        } catch (e) {
-            console.error('Refresh token error:', e);
-        }
+        } catch (e) {}
         return false;
     }
 
@@ -194,7 +162,7 @@ class SupabaseClient {
         
         if (!res.ok) {
             const err = await res.json().catch(() => ({ message: 'Request failed' }));
-            throw new Error(err.message || err.details || err.msg || `Database error: ${res.status}`);
+            throw new Error(err.message || err.details || 'Database error');
         }
 
         const text = await res.text();
@@ -231,16 +199,6 @@ class SupabaseClient {
     async selectSingle(table, columns = '*', filters = '') {
         return this.query(table, 'GET', { select: columns, filters, single: true });
     }
-}
-
-class QueryBuilder {
-    constructor(client, table) {
-        this.client = client;
-        this.table = table;
-    }
-    
-    // Placeholder for cleaner chaining syntax if needed in future
-    select(columns) { return this.client.select(this.table, columns); }
 }
 
 const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
