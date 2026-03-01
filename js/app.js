@@ -133,12 +133,18 @@ showToast(msg, 'success');
         });
 
         socket.on('donation_received', async (data) => {
-            if (currentUser && (currentUser.id === data.toUserId || (userProfile && userProfile.username === data.toUsername))) {
-                playCashoutSound();
-                showToast(`❤️ ${data.fromUsername} donated ${data.amount.toLocaleString()} Astraphobia!`, 'success');
-                if (typeof loadProfile === 'function') await loadProfile();
-            }
-        });
+    if (currentUser && (currentUser.id === data.toUserId || (userProfile && userProfile.username === data.toUsername))) {
+        playCashoutSound();
+        let senderDisplay = escapeHtml(data.fromUsername);
+        if (data.fromRank && typeof getRankTagHTML === 'function') {
+            senderDisplay = getRankTagHTML(false, data.fromRank) + ' ' + senderDisplay;
+        } else {
+            senderDisplay = '❤️ ' + senderDisplay;
+        }
+        showToast(`${senderDisplay} donated ${data.amount.toLocaleString()} Astraphobia to you!`, 'success');
+        if (typeof loadProfile === 'function') await loadProfile();
+    }
+});
 
         // SERVER MODE — affects ALL clients
         socket.on('server_mode_change', (data) => {
@@ -166,4 +172,5 @@ showToast(msg, 'success');
         });
     }
 });
+
 
