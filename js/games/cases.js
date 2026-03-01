@@ -1,4 +1,4 @@
-// Case Battle System - Multiplayer via Socket.io + Bot fallback + Case Tiers
+// Case Battle System - Tags visible in battles
 const CASE_TAGS = [
     { id: 'common_tag', name: 'Common', value: 10, color: '#888888', rarity: 40 },
     { id: 'uncommon_tag', name: 'Uncommon', value: 25, color: '#4cd137', rarity: 25 },
@@ -44,13 +44,10 @@ let caseSocketInit = false;
 
 function getRandomTagFromPool(tagIds) {
     const pool = CASE_TAGS.filter(t => tagIds.includes(t.id));
-    if (pool.length === 0) return { ...CASE_TAGS[0] };
-    const totalWeight = pool.reduce((s, t) => s + t.rarity, 0);
-    let rand = Math.random() * totalWeight;
-    for (const tag of pool) {
-        rand -= tag.rarity;
-        if (rand <= 0) return { ...tag };
-    }
+    if (!pool.length) return { ...CASE_TAGS[0] };
+    const total = pool.reduce((s, t) => s + t.rarity, 0);
+    let r = Math.random() * total;
+    for (const t of pool) { r -= t.rarity; if (r <= 0) return { ...t }; }
     return { ...pool[0] };
 }
 
@@ -60,53 +57,56 @@ function getSelectedCaseTier() {
     return CASE_TIERS.find(t => t.id === sel.value) || CASE_TIERS[0];
 }
 
-function formatCaseCost(cost) {
-    if (cost >= 1000000000) return (cost / 1000000000).toFixed(0) + 'B';
-    if (cost >= 1000000) return (cost / 1000000).toFixed(0) + 'M';
-    if (cost >= 1000) return (cost / 1000).toFixed(0) + 'K';
-    return cost.toString();
+function formatCaseCost(c) {
+    if (c >= 1e9) return (c/1e9).toFixed(0)+'B';
+    if (c >= 1e6) return (c/1e6).toFixed(0)+'M';
+    if (c >= 1e3) return (c/1e3).toFixed(0)+'K';
+    return c.toString();
 }
 
 function renderCaseSelect() {
     const sel = document.getElementById('caseSelect');
     if (!sel) return;
-    sel.innerHTML = CASE_TIERS.map(t =>
-        `<option value="${t.id}">${t.name} — ${formatCaseCost(t.cost)} Astraphobia</option>`
-    ).join('');
+    sel.innerHTML = CASE_TIERS.map(t => `<option value="${t.id}">${t.name} — ${formatCaseCost(t.cost)} Astraphobia</option>`).join('');
+}
+
+function getMyRankForBattle() {
+    return typeof getEquippedRank === 'function' ? getEquippedRank() : null;
+}
+
+function renderPlayerNameWithTag(name, rankId) {
+    let html = escapeHtml(name);
+    if (rankId && typeof getRankTagHTML === 'function') {
+        html = getRankTagHTML(false, rankId) + ' ' + html;
+    }
+    return html;
 }
 
 function initCaseBattleSocket() {
     if (caseSocketInit || typeof socket === 'undefined' || !socket) return;
     caseSocketInit = true;
 
-    socket.on('case_lobby_list', (lobbies) => {
-        caseLobbyList = lobbies;
-        renderCaseLobbies();
-    });
+    socket.on('case_lobby_list', (lobbies) => { caseLobbyList = lobbies; renderCaseLobbies(); });
 
     socket.on('case_lobby_created', (lobby) => {
-        if (!caseLobbyList.find(l => l.id === lobby.id)) {
-            caseLobbyList.push(lobby);
-        }
+        if (!caseLobbyList.find(l => l.id === lobby.id)) caseLobbyList.push(lobby);
         renderCaseLobbies();
         if (lobby.creatorId === currentUser?.id) {
             myActiveLobby = lobby.id;
-            document.getElementById('caseStartBtn').textContent = 'Waiting for opponent...';
+            document.getElementById('caseStartBtn').textContent = 'Waiting...';
             document.getElementById('caseStartBtn').disabled = true;
             document.getElementById('caseBotBtn').disabled = false;
         }
     });
 
-    socket.on('case_lobby_removed', (lobbyId) => {
-        caseLobbyList = caseLobbyList.filter(l => l.id !== lobbyId);
-        if (myActiveLobby === lobbyId) myActiveLobby = null;
+    socket.on('case_lobby_removed', (id) => {
+        caseLobbyList = caseLobbyList.filter(l => l.id !== id);
+        if (myActiveLobby === id) myActiveLobby = null;
         renderCaseLobbies();
     });
 
     socket.on('case_battle_start', (data) => {
-        if (data.player1Id === currentUser?.id || data.player2Id === currentUser?.id) {
-            runCaseBattleAnimation(data);
-        }
+        if (data.player1Id === currentUser?.id || data.player2Id === currentUser?.id) runCaseBattleAnimation(data);
         caseLobbyList = caseLobbyList.filter(l => l.id !== data.lobbyId);
         renderCaseLobbies();
     });
@@ -115,47 +115,35 @@ function initCaseBattleSocket() {
 }
 
 function renderCaseLobbies() {
-    const container = document.getElementById('caseLobbies');
-    if (!container) return;
-
-    if (caseLobbyList.length === 0) {
-        container.innerHTML = '<div class="loading" style="padding:12px;">No open battles. Create one!</div>';
-        return;
-    }
-
-    let html = '';
-    caseLobbyList.forEach(lobby => {
-        const isMyLobby = currentUser && lobby.creatorId === currentUser.id;
-        const tierInfo = CASE_TIERS.find(t => t.id === lobby.caseId) || CASE_TIERS[0];
-        html += `
-            <div class="case-lobby-row ${isMyLobby ? 'my-lobby' : ''}">
-                <div class="case-lobby-info">
-                    <span class="case-lobby-user">${escapeHtml(lobby.creatorName)}</span>
-                    <span class="case-lobby-case">${tierInfo.name}</span>
-                    <span class="case-lobby-cost">${formatCaseCost(tierInfo.cost)} each</span>
-                </div>
-                ${isMyLobby ? 
-                    '<button class="btn btn-sm btn-danger" onclick="cancelMyLobby()">Cancel</button>' :
-                    `<button class="btn btn-sm btn-primary" onclick="joinCaseLobby('${lobby.id}')">Join Battle</button>`
-                }
+    const c = document.getElementById('caseLobbies');
+    if (!c) return;
+    if (!caseLobbyList.length) { c.innerHTML = '<div class="loading" style="padding:12px;">No open battles. Create one!</div>'; return; }
+    c.innerHTML = caseLobbyList.map(lobby => {
+        const mine = currentUser && lobby.creatorId === currentUser.id;
+        const tier = CASE_TIERS.find(t => t.id === lobby.caseId) || CASE_TIERS[0];
+        return `<div class="case-lobby-row ${mine?'my-lobby':''}">
+            <div class="case-lobby-info">
+                <span class="case-lobby-user">${escapeHtml(lobby.creatorName)}</span>
+                <span class="case-lobby-case">${tier.name}</span>
+                <span class="case-lobby-cost">${formatCaseCost(tier.cost)} each</span>
             </div>
-        `;
-    });
-    container.innerHTML = html;
+            ${mine ? '<button class="btn btn-sm btn-danger" onclick="cancelMyLobby()">Cancel</button>' :
+            `<button class="btn btn-sm btn-primary" onclick="joinCaseLobby('${lobby.id}')">Join</button>`}
+        </div>`;
+    }).join('');
 }
 
 function createCaseBattle() {
     if (!currentUser) { showToast('Please login', 'error'); return; }
-    if (myActiveLobby) { showToast('You already have an open battle', 'warning'); return; }
-
+    if (myActiveLobby) { showToast('Already have a battle', 'warning'); return; }
+    if (typeof canPlaceBet === 'function' && !canPlaceBet()) return;
     const tier = getSelectedCaseTier();
-    if (userBalance < tier.cost) { showToast('Insufficient balance for ' + tier.name, 'error'); return; }
-
+    if (userBalance < tier.cost) { showToast('Insufficient balance', 'error'); return; }
     socket.emit('case_create_lobby', {
         creatorId: currentUser.id,
         creatorName: userProfile?.username || 'Player',
-        caseId: tier.id,
-        cost: tier.cost
+        creatorRank: getMyRankForBattle(),
+        caseId: tier.id, cost: tier.cost
     });
 }
 
@@ -170,40 +158,33 @@ function cancelMyLobby() {
 
 async function joinCaseLobby(lobbyId) {
     if (!currentUser) { showToast('Please login', 'error'); return; }
+    if (typeof canPlaceBet === 'function' && !canPlaceBet()) return;
     const lobby = caseLobbyList.find(l => l.id === lobbyId);
-    if (!lobby) { showToast('Lobby no longer exists', 'error'); return; }
-
+    if (!lobby) { showToast('Lobby gone', 'error'); return; }
     const tier = CASE_TIERS.find(t => t.id === lobby.caseId) || CASE_TIERS[0];
     if (userBalance < tier.cost) { showToast('Insufficient balance', 'error'); return; }
-
     socket.emit('case_join_lobby', {
-        lobbyId: lobbyId,
-        joinerId: currentUser.id,
-        joinerName: userProfile?.username || 'Player'
+        lobbyId, joinerId: currentUser.id,
+        joinerName: userProfile?.username || 'Player',
+        joinerRank: getMyRankForBattle()
     });
 }
 
 function playVsBot() {
-    if (!currentUser) { showToast('Please login', 'error'); return; }
-    if (!myActiveLobby) { showToast('Create a battle first', 'error'); return; }
-
+    if (!currentUser) { showToast('Login first', 'error'); return; }
+    if (!myActiveLobby) { showToast('Create battle first', 'error'); return; }
     socket.emit('case_bot_join', { lobbyId: myActiveLobby });
 }
 
 async function runCaseBattleAnimation(data) {
     caseSpinning = true;
-    const isPlayer1 = data.player1Id === currentUser?.id;
-    const isPlayer2 = data.player2Id === currentUser?.id;
-
-    if (!isPlayer1 && !isPlayer2) return;
+    const isP1 = data.player1Id === currentUser?.id;
+    const isP2 = data.player2Id === currentUser?.id;
+    if (!isP1 && !isP2) return;
 
     const tier = CASE_TIERS.find(t => t.id === data.caseId) || CASE_TIERS[0];
-
-    if (isPlayer1 || isPlayer2) {
-        await updateBalance(userBalance - tier.cost);
-        totalWagered += tier.cost;
-    }
-
+    await updateBalance(userBalance - tier.cost);
+    totalWagered += tier.cost;
     playBetSound();
 
     document.getElementById('caseBattleResult').textContent = '';
@@ -213,39 +194,31 @@ async function runCaseBattleAnimation(data) {
     const p1Tag = CASE_TAGS.find(t => t.id === data.player1TagId) || CASE_TAGS[0];
     const p2Tag = CASE_TAGS.find(t => t.id === data.player2TagId) || CASE_TAGS[0];
 
-    document.getElementById('casePlayerLeftName').textContent = data.player1Name;
-    document.getElementById('casePlayerRightName').textContent = data.player2Name;
+    // Show names WITH rank tags
+    document.getElementById('casePlayerLeftName').innerHTML = renderPlayerNameWithTag(data.player1Name, data.player1Rank);
+    document.getElementById('casePlayerRightName').innerHTML = renderPlayerNameWithTag(data.player2Name, data.player2Rank);
 
     buildSpinReel('caseReelLeft', p1Tag, tier.tags);
     buildSpinReel('caseReelRight', p2Tag, tier.tags);
-
     document.getElementById('caseStartBtn').disabled = true;
     document.getElementById('caseBotBtn').disabled = true;
 
     setTimeout(async () => {
-        const resultEl = document.getElementById('caseBattleResult');
-        const leftResult = document.getElementById('caseResultLeft');
-        const rightResult = document.getElementById('caseResultRight');
-
-        leftResult.innerHTML = `<div class="case-final-tag" style="color:${p1Tag.color};border-color:${p1Tag.color};">${p1Tag.name} (${p1Tag.value.toLocaleString()})</div>`;
-        rightResult.innerHTML = `<div class="case-final-tag" style="color:${p2Tag.color};border-color:${p2Tag.color};">${p2Tag.name} (${p2Tag.value.toLocaleString()})</div>`;
-
-        const iWin = (isPlayer1 && p1Tag.value >= p2Tag.value) || (isPlayer2 && p2Tag.value > p1Tag.value);
-
+        document.getElementById('caseResultLeft').innerHTML = `<div class="case-final-tag" style="color:${p1Tag.color};border-color:${p1Tag.color};">${p1Tag.name} (${p1Tag.value.toLocaleString()})</div>`;
+        document.getElementById('caseResultRight').innerHTML = `<div class="case-final-tag" style="color:${p2Tag.color};border-color:${p2Tag.color};">${p2Tag.name} (${p2Tag.value.toLocaleString()})</div>`;
+        const iWin = (isP1 && p1Tag.value >= p2Tag.value) || (isP2 && p2Tag.value > p1Tag.value);
+        const res = document.getElementById('caseBattleResult');
         if (iWin) {
             playCashoutSound();
-            resultEl.innerHTML = `<span class="case-win">🎉 YOU WIN! You get both tags!</span>`;
-            await addToInventory(p1Tag);
-            await addToInventory(p2Tag);
+            res.innerHTML = `<span class="case-win">🎉 YOU WIN!</span>`;
+            await addToInventory(p1Tag); await addToInventory(p2Tag);
             totalWins++;
-            showToast(`Won! Got ${p1Tag.name} + ${p2Tag.name}!`, 'success');
+            showToast(`Won ${p1Tag.name} + ${p2Tag.name}!`, 'success');
         } else {
-            resultEl.innerHTML = `<span class="case-lose">💀 You lost! Opponent takes everything.</span>`;
-            showToast('Lost the case battle!', 'error');
+            res.innerHTML = `<span class="case-lose">💀 You lost!</span>`;
+            showToast('Lost!', 'error');
         }
-
-        caseSpinning = false;
-        myActiveLobby = null;
+        caseSpinning = false; myActiveLobby = null;
         document.getElementById('caseStartBtn').textContent = 'Create Battle';
         document.getElementById('caseStartBtn').disabled = false;
         document.getElementById('caseBotBtn').disabled = true;
@@ -255,68 +228,34 @@ async function runCaseBattleAnimation(data) {
 function buildSpinReel(reelId, finalTag, poolIds) {
     const reel = document.getElementById(reelId);
     if (!reel) return;
-
     const pool = poolIds || CASE_TAGS.map(t => t.id);
-    const itemHeight = 60;
-    const totalFakeItems = 40;
-
+    const itemH = 60, fakeCount = 40;
     let html = '';
-    for (let i = 0; i < totalFakeItems; i++) {
+    for (let i = 0; i < fakeCount; i++) {
         const t = getRandomTagFromPool(pool);
-        html += `<div class="case-reel-item" style="background:${t.color}15;color:${t.color};border-bottom:1px solid ${t.color}30;">
-            <span class="case-reel-name">${t.name}</span>
-            <span class="case-reel-val">${t.value.toLocaleString()}</span>
-        </div>`;
+        html += `<div class="case-reel-item" style="background:${t.color}12;color:${t.color};border-bottom:1px solid ${t.color}25;"><span class="case-reel-name">${t.name}</span><span class="case-reel-val">${t.value.toLocaleString()}</span></div>`;
     }
-    // The winning item
-    html += `<div class="case-reel-item case-reel-winner" style="background:${finalTag.color}25;color:${finalTag.color};border:2px solid ${finalTag.color};">
-        <span class="case-reel-name">${finalTag.name}</span>
-        <span class="case-reel-val">${finalTag.value.toLocaleString()}</span>
-    </div>`;
-    // Extra items after winner
+    html += `<div class="case-reel-item case-reel-winner" style="background:${finalTag.color}25;color:${finalTag.color};border:2px solid ${finalTag.color};"><span class="case-reel-name">${finalTag.name}</span><span class="case-reel-val">${finalTag.value.toLocaleString()}</span></div>`;
     for (let i = 0; i < 5; i++) {
         const t = getRandomTagFromPool(pool);
-        html += `<div class="case-reel-item" style="background:${t.color}15;color:${t.color};border-bottom:1px solid ${t.color}30;">
-            <span class="case-reel-name">${t.name}</span>
-            <span class="case-reel-val">${t.value.toLocaleString()}</span>
-        </div>`;
+        html += `<div class="case-reel-item" style="background:${t.color}12;color:${t.color};border-bottom:1px solid ${t.color}25;"><span class="case-reel-name">${t.name}</span><span class="case-reel-val">${t.value.toLocaleString()}</span></div>`;
     }
-
     reel.innerHTML = html;
     reel.style.transition = 'none';
     reel.style.transform = 'translateY(0px)';
     void reel.offsetHeight;
-
-    const targetY = -(totalFakeItems * itemHeight);
     setTimeout(() => {
-        reel.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.6, 0.15, 1)';
-        reel.style.transform = `translateY(${targetY}px)`;
+        reel.style.transition = 'transform 3.5s cubic-bezier(0.12,0.8,0.14,1)';
+        reel.style.transform = `translateY(${-(fakeCount * itemH)}px)`;
     }, 50);
 }
 
 async function addToInventory(tag) {
     if (!currentUser || !userProfile) return;
-
-    const inventory = userProfile.inventory || [];
-    inventory.push({
-        id: tag.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        tagId: tag.id,
-        name: tag.name,
-        value: tag.value,
-        color: tag.color,
-        wonAt: new Date().toISOString()
-    });
-
-    userProfile.inventory = inventory;
-
-    try {
-        await supabase.update('profiles',
-            { inventory: inventory },
-            `id=eq.${currentUser.id}`
-        );
-    } catch (e) {
-        console.error('Inventory update error:', e);
-    }
+    const inv = userProfile.inventory || [];
+    inv.push({ id: tag.id+'_'+Date.now()+'_'+Math.random().toString(36).substr(2,4), tagId: tag.id, name: tag.name, value: tag.value, color: tag.color, wonAt: new Date().toISOString() });
+    userProfile.inventory = inv;
+    try { await supabase.update('profiles', { inventory: inv }, `id=eq.${currentUser.id}`); } catch(e) {}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
