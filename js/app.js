@@ -1,40 +1,47 @@
-// --- AUDIO SYSTEM ---
 const audioBet = new Audio('sounds/bet.mp3');
 const audioCashout = new Audio('sounds/cashout.mp3');
-
 window.serverMode = 'normal';
+window.globalWinMultiplier = 1.0;
 
-function playBetSound() {
-    audioBet.currentTime = 0;
-    audioBet.play().catch(e => console.warn("Sound blocked:", e));
+function playBetSound() { audioBet.currentTime = 0; audioBet.play().catch(() => {}); }
+function playCashoutSound() { audioCashout.currentTime = 0; audioCashout.play().catch(() => {}); }
+
+// GLOBAL BET CHECK — every game must call this before placing a bet
+function canPlaceBet() {
+    if (window.serverMode === 'freeze_bets') {
+        showToast('❄️ Betting is frozen by admin', 'error');
+        return false;
+    }
+    if (window.serverMode === 'maintenance') {
+        showToast('🔧 Casino is under maintenance', 'error');
+        return false;
+    }
+    return true;
 }
 
-function playCashoutSound() {
-    audioCashout.currentTime = 0;
-    audioCashout.play().catch(e => console.warn("Sound blocked:", e));
-}
-
-// Global win multiplier helper — call this in every game when calculating win payout
+// GLOBAL WIN AMOUNT — applies admin multiplier to all game payouts
 function getWinAmount(bet, gameMultiplier) {
-    const globalMul = typeof getGlobalMultiplier === 'function' ? getGlobalMultiplier() : 1.0;
-    return Math.floor(bet * gameMultiplier * globalMul);
+    return Math.floor(bet * gameMultiplier * window.globalWinMultiplier);
+}
+
+function applyServerMode(mode) {
+    window.serverMode = mode;
+    if (mode === 'freeze_bets' || mode === 'maintenance') {
+        document.body.classList.add('server-frozen');
+    } else {
+        document.body.classList.remove('server-frozen');
+    }
 }
 
 function navigateTo(page) {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
     const target = document.getElementById('page-' + page);
-    if (target) {
-        target.style.display = 'block';
-    } else {
-        const home = document.getElementById('page-home');
-        if (home) home.style.display = 'block';
-        return;
-    }
+    if (target) target.style.display = 'block';
+    else { const h = document.getElementById('page-home'); if (h) h.style.display = 'block'; return; }
 
     document.querySelectorAll('.game-item').forEach(item => item.classList.remove('active'));
     document.querySelectorAll('.game-item').forEach(item => {
-        const onclick = item.getAttribute('onclick') || '';
-        if (onclick.includes(`'${page}'`)) item.classList.add('active');
+        if ((item.getAttribute('onclick') || '').includes(`'${page}'`)) item.classList.add('active');
     });
 
     switch (page) {
@@ -56,18 +63,12 @@ function navigateTo(page) {
 
 function showModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'flex';
-        setTimeout(() => { const input = modal.querySelector('input'); if (input) input.focus(); }, 100);
-    }
+    if (modal) { modal.style.display = 'flex'; setTimeout(() => { const i = modal.querySelector('input'); if (i) i.focus(); }, 100); }
     if (modalId === 'vaultModal' && typeof updateVaultDisplay === 'function') updateVaultDisplay();
     if (modalId === 'donateModal' && typeof loadDonateNotifications === 'function') loadDonateNotifications();
 }
 
-function hideModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) modal.style.display = 'none';
-}
+function hideModal(modalId) { const m = document.getElementById(modalId); if (m) m.style.display = 'none'; }
 
 let modalMouseDownTarget = null;
 document.addEventListener('mousedown', (e) => { modalMouseDownTarget = e.target.classList.contains('modal-overlay') ? e.target : null; });
@@ -98,9 +99,7 @@ async function loadHomeStats() {
     if (!el) return;
     try {
         const profiles = await supabase.select('profiles', 'id,username');
-        if (profiles && Array.isArray(profiles)) {
-            el.textContent = profiles.filter(p => p.username && p.username.length >= 3).length;
-        } else { el.textContent = '0'; }
+        el.textContent = profiles && Array.isArray(profiles) ? profiles.filter(p => p.username && p.username.length >= 3).length : '0';
     } catch (e) { el.textContent = '0'; }
 }
 
@@ -115,28 +114,44 @@ async function initApp() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
+
     if (typeof socket !== 'undefined') {
         socket.on('gift_notification', async (data) => {
             if (currentUser && userProfile && (userProfile.username === data.targetUsername || currentUser.id === data.targetId)) {
                 playCashoutSound();
-                showToast(data.amount > 0 ? `Received ${data.amount} Astraphobia from OWNER` : `Balance adjusted by ${data.amount}`, 'success');
+                showToast(`Received ${data.amount} Astraphobia from OWNER`, 'success');
                 if (typeof loadProfile === 'function') await loadProfile();
             }
         });
-        socket.on('global_announcement', (data) => { if (typeof showAnnouncementBanner === 'function') showAnnouncementBanner(data.text); });
+
+        socket.on('global_announcement', (data) => {
+            if (typeof showAnnouncementBanner === 'function') showAnnouncementBanner(data.text);
+        });
+
         socket.on('donation_received', async (data) => {
             if (currentUser && (currentUser.id === data.toUserId || (userProfile && userProfile.username === data.toUsername))) {
                 playCashoutSound();
-                showToast(`❤️ ${data.fromUsername} donated ${data.amount.toLocaleString()} Astraphobia to you!`, 'success');
+                showToast(`❤️ ${data.fromUsername} donated ${data.amount.toLocaleString()} Astraphobia!`, 'success');
                 if (typeof loadProfile === 'function') await loadProfile();
             }
         });
+
+        // SERVER MODE — affects ALL clients
         socket.on('server_mode_change', (data) => {
-            window.serverMode = data.mode || 'normal';
-            if (data.mode === 'maintenance') showToast('🔧 Casino under maintenance', 'warning');
-            else if (data.mode === 'freeze_bets') showToast('❄️ Betting frozen by admin', 'warning');
-            else if (data.mode === 'normal' && window.serverMode !== 'normal') showToast('✅ Casino back to normal', 'success');
+            const oldMode = window.serverMode;
+            applyServerMode(data.mode || 'normal');
+            if (data.mode === 'maintenance' && oldMode !== 'maintenance') showToast('🔧 Casino under maintenance — all games paused', 'warning');
+            else if (data.mode === 'freeze_bets' && oldMode !== 'freeze_bets') showToast('❄️ All betting frozen by admin', 'warning');
+            else if (data.mode === 'normal' && oldMode !== 'normal') showToast('✅ Casino is back online!', 'success');
         });
+
+        // GLOBAL MULTIPLIER — synced to all clients
+        socket.on('global_multiplier_change', (data) => {
+            window.globalWinMultiplier = data.value || 1.0;
+            if (typeof globalMultiplierValue !== 'undefined') globalMultiplierValue = data.value;
+        });
+
+        // RAIN
         socket.on('rain_received', (data) => {
             if (currentUser && data.amount) {
                 userBalance += data.amount;
