@@ -119,7 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.on('gift_notification', async (data) => {
             if (currentUser && userProfile && (userProfile.username === data.targetUsername || currentUser.id === data.targetId)) {
                 playCashoutSound();
-                showToast(`Received ${data.amount} Astraphobia from OWNER`, 'success');
+                const ownerTag = '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>';
+let msg = data.amount > 0 
+    ? `Received ${data.amount.toLocaleString()} Astraphobia from ${ownerTag} Astraphobia`
+    : `Balance adjusted by ${data.amount.toLocaleString()} by ${ownerTag}`;
+showToast(msg, 'success');
                 if (typeof loadProfile === 'function') await loadProfile();
             }
         });
@@ -162,3 +166,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
