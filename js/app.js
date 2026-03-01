@@ -152,22 +152,17 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.on('donation_received', async (data) => {
     if (currentUser && (currentUser.id === data.toUserId || (userProfile && userProfile.username === data.toUsername))) {
         playCashoutSound();
-        let senderDisplay = '';
-        // Show OWNER tag if sender is owner
-        if (data.fromIsOwner) {
-            senderDisplay += '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>';
-        }
-        // Show equipped rank tag if they have one
-        if (data.fromRank && typeof getRankTagHTML === 'function') {
-            senderDisplay += getRankTagHTML(false, data.fromRank) + ' ';
-        }
-        // If no tags at all, use heart
-        if (!data.fromIsOwner && !data.fromRank) {
-            senderDisplay = '❤️ ';
-        }
-        senderDisplay += escapeHtml(data.fromUsername);
-        showToast(`${senderDisplay} donated ${data.amount.toLocaleString()} Astraphobia to you!`, 'success');
+
+        // Use renderNameWithTags from cases.js — shows OWNER + rank tag (double if owner has rank)
+        const display = (typeof renderNameWithTags === 'function')
+            ? renderNameWithTags(data.fromUsername, data.fromIsOwner, data.fromRank)
+            : escapeHtml(data.fromUsername);
+
+        showToast(`${display} donated ${data.amount.toLocaleString()} Astraphobia to you!`, 'success');
         if (typeof loadProfile === 'function') await loadProfile();
+
+        // Mark as seen immediately so checkDonationNotifications won't show it again
+        if (typeof markDonationsAsSeen === 'function') markDonationsAsSeen();
     }
 });
 
@@ -197,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
 
