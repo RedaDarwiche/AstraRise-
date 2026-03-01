@@ -116,34 +116,23 @@ document.addEventListener('DOMContentLoaded', () => {
     initApp();
 
     if (typeof socket !== 'undefined') {
-        socket.on('gift_notification', async (data) => {
-  if (currentUser && userProfile && (userProfile.username === data.targetUsername || currentUser.id === data.targetId)) {
-    playCashoutSound();
+                socket.on('gift_notification', async (data) => {
+            if (currentUser && userProfile && (userProfile.username === data.targetUsername || currentUser.id === data.targetId)) {
+                playCashoutSound();
 
-    // Build OWNER tag only if senderIsOwner is true
-    const ownerTag = data.senderIsOwner
-      ? '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>'
-      : '';
+                const display = (typeof buildDonorDisplay === 'function')
+                    ? buildDonorDisplay(data.senderName || 'Admin', data.senderIsOwner, data.senderRank)
+                    : escapeHtml(data.senderName || 'Admin');
 
-    // Build equipped rank tag if senderRank exists
-    const rankTag = (data.senderRank && typeof getRankTagHTML === 'function')
-      ? (getRankTagHTML(false, data.senderRank) + ' ')
-      : '';
+                const amt = Number(data.amount) || 0;
+                const msg = amt >= 0
+                    ? `Received ${amt.toLocaleString()} Astraphobia from ${display}`
+                    : `Balance adjusted by ${amt.toLocaleString()} by ${display}`;
 
-    const tags = (ownerTag + rankTag).trim();
-    const tagPrefix = tags ? (tags + ' ') : '';
-
-    const senderName = escapeHtml(data.senderName || 'Admin');
-    const amt = Number(data.amount) || 0;
-
-    const msg = amt >= 0
-      ? `Received ${amt.toLocaleString()} Astraphobia from ${tagPrefix}${senderName}`
-      : `Balance adjusted by ${amt.toLocaleString()} by ${tagPrefix}${senderName}`;
-
-    showToast(msg, 'success');
-    if (typeof loadProfile === 'function') await loadProfile();
-  }
-});
+                showToast(msg, 'success');
+                if (typeof loadProfile === 'function') await loadProfile();
+            }
+        });
 
         socket.on('global_announcement', (data) => {
             if (typeof showAnnouncementBanner === 'function') showAnnouncementBanner(data.text);
@@ -189,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
 
