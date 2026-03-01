@@ -47,11 +47,12 @@ async function sendDonation() {
         // Notify via socket
         if (socket && socket.connected) {
             socket.emit('donation_sent', {
-                fromUsername: userProfile.username,
-                toUsername: recipientUsername,
-                toUserId: recipient.id,
-                amount: amount
-            });
+    fromUsername: userProfile.username,
+    fromRank: typeof getEquippedRank === 'function' ? getEquippedRank() : null,
+    toUsername: recipientUsername,
+    toUserId: recipient.id,
+    amount: amount
+});
         }
         
         showToast(`Donated ${amount.toLocaleString()} Astraphobia to ${recipientUsername}!`, 'success');
