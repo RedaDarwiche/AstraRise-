@@ -62,6 +62,19 @@ function renderCaseSelect() {
 
 function getMyRankForBattle() { return typeof getEquippedRank === 'function' ? getEquippedRank() : null; }
 
+function getIsOwnerForBattle() {
+    return !!(currentUser && currentUser.email === OWNER_EMAIL);
+}
+
+function renderNameWithTags(name, isOwnerFlag, rankId) {
+    const ownerTag = isOwnerFlag
+        ? '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>'
+        : '';
+    const rankTag = (rankId && typeof getRankTagHTML === 'function')
+        ? getRankTagHTML(false, rankId)
+        : '';
+    return `${ownerTag}${rankTag} ${escapeHtml(name)}`.trim();
+}
 function renderPlayerNameWithTag(name, rankId) {
     let html = escapeHtml(name);
     if (rankId && typeof getRankTagHTML === 'function') html = getRankTagHTML(false, rankId) + ' ' + html;
@@ -108,7 +121,14 @@ function createCaseBattle() {
     if (!canPlaceBet()) return;
     const tier = getSelectedCaseTier();
     if (userBalance < tier.cost) { showToast('Insufficient balance', 'error'); return; }
-    socket.emit('case_create_lobby', { creatorId: currentUser.id, creatorName: userProfile?.username || 'Player', creatorRank: getMyRankForBattle(), caseId: tier.id, cost: tier.cost });
+    socket.emit('case_create_lobby', {
+    creatorId: currentUser.id,
+    creatorName: userProfile?.username || 'Player',
+    creatorRank: getMyRankForBattle(),
+    creatorIsOwner: getIsOwnerForBattle(),
+    caseId: tier.id,
+    cost: tier.cost
+});
 }
 
 function cancelMyLobby() {
@@ -127,7 +147,13 @@ async function joinCaseLobby(lobbyId) {
     if (!lobby) { showToast('Gone', 'error'); return; }
     const tier = CASE_TIERS.find(t => t.id === lobby.caseId) || CASE_TIERS[0];
     if (userBalance < tier.cost) { showToast('Insufficient balance', 'error'); return; }
-    socket.emit('case_join_lobby', { lobbyId, joinerId: currentUser.id, joinerName: userProfile?.username || 'Player', joinerRank: getMyRankForBattle() });
+   socket.emit('case_join_lobby', {
+    lobbyId,
+    joinerId: currentUser.id,
+    joinerName: userProfile?.username || 'Player',
+    joinerRank: getMyRankForBattle(),
+    joinerIsOwner: getIsOwnerForBattle()
+});
 }
 
 function playVsBot() {
@@ -154,8 +180,11 @@ async function runCaseBattleAnimation(data) {
     const p1Tag = CASE_TAGS.find(t => t.id === data.player1TagId) || CASE_TAGS[0];
     const p2Tag = CASE_TAGS.find(t => t.id === data.player2TagId) || CASE_TAGS[0];
 
-    document.getElementById('casePlayerLeftName').innerHTML = renderPlayerNameWithTag(data.player1Name, data.player1Rank);
-    document.getElementById('casePlayerRightName').innerHTML = renderPlayerNameWithTag(data.player2Name, data.player2Rank);
+document.getElementById('casePlayerLeftName').innerHTML =
+    renderNameWithTags(data.player1Name, data.player1IsOwner, data.player1Rank);
+
+document.getElementById('casePlayerRightName').innerHTML =
+    renderNameWithTags(data.player2Name, data.player2IsOwner, data.player2Rank);
 
     buildSpinReel('caseReelLeft', p1Tag, tier.tags);
     buildSpinReel('caseReelRight', p2Tag, tier.tags);
@@ -165,7 +194,7 @@ async function runCaseBattleAnimation(data) {
     setTimeout(async () => {
         document.getElementById('caseResultLeft').innerHTML = `<div class="case-final-tag" style="color:${p1Tag.color};border-color:${p1Tag.color};">${p1Tag.name} (${p1Tag.value.toLocaleString()})</div>`;
         document.getElementById('caseResultRight').innerHTML = `<div class="case-final-tag" style="color:${p2Tag.color};border-color:${p2Tag.color};">${p2Tag.name} (${p2Tag.value.toLocaleString()})</div>`;
-        const iWin = (isP1 && p1Tag.value >= p2Tag.value) || (isP2 && p2Tag.value > p1Tag.value);
+        const iWin = (currentUser && data.winnerId === currentUser.id);
         const res = document.getElementById('caseBattleResult');
         if (iWin) { playCashoutSound(); res.innerHTML = '<span class="case-win">🎉 YOU WIN!</span>'; await addToInventory(p1Tag); await addToInventory(p2Tag); totalWins++; showToast(`Won ${p1Tag.name} + ${p2Tag.name}!`, 'success'); }
         else { res.innerHTML = '<span class="case-lose">💀 You lost!</span>'; showToast('Lost!', 'error'); }
@@ -202,7 +231,9 @@ function buildSpinReel(reelId, finalTag, poolIds) {
     track.style.transform = 'translateY(0px)';
     void track.offsetHeight;
 
-    const targetY = -(fakeCount * itemH);
+    const reelHeight = reel.clientHeight || 180;
+const centerOffset = (reelHeight / 2) - (itemH / 2); // 60 when 180px reel & 60px items
+const targetY = -(fakeCount * itemH) + centerOffset;
     setTimeout(() => {
         track.style.transition = 'transform 3.5s cubic-bezier(0.12, 0.8, 0.14, 1)';
         track.style.transform = `translateY(${targetY}px)`;
