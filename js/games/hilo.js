@@ -113,17 +113,3 @@ function hiloGuess(guess) {
     }
 }
 
-function hiloCashout() {
-    if (!hiloGameActive) return;
-    hiloGameActive = false;
-
-    const effectiveMultiplier = hiloMultiplier * getGlobalMultiplier();
-    const winAmount = Math.floor(hiloBetAmount * effectiveMultiplier);
-    updateBalance(userBalance + winAmount);
-    totalWins++;
-
-    document.getElementById('hiloStartBtn').style.display = 'block';
-    document.getElementById('hiloActions').style.display = 'none';
-    showToast(`Cashed out! Won ${winAmount} Astraphobia!`, 'success');
-    playCashoutSound();
-}
