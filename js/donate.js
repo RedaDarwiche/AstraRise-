@@ -1,4 +1,24 @@
-// Donation System
+// Donation System — uses server-side RPC to bypass RLS
+
+// Build tag HTML for donation notifications: [OWNER] [RANK] username
+function buildDonorDisplay(username, donorIsOwner, donorRank) {
+    let tags = '';
+    
+    // OWNER tag first
+    if (donorIsOwner) {
+        tags += '<span class="rank-tag rank-owner" style="margin-right:4px;vertical-align:baseline;">OWNER</span>';
+    }
+    
+    // Equipped rank tag (e.g. LEGEND, VIP, etc.)
+    if (donorRank && typeof getRankTagHTML === 'function') {
+        tags += getRankTagHTML(false, donorRank) + ' ';
+    }
+    
+    const safeName = escapeHtml(username || 'Someone');
+    
+    // Result: [OWNER] [LEGEND] username
+    return tags + safeName;
+}
 
 async function sendDonation() {
     if (!currentUser || !userProfile) { showToast('Please login', 'error'); return; }
@@ -14,60 +34,48 @@ async function sendDonation() {
         return;
     }
 
+    const senderIsOwner = isOwner();
+    const senderRank = (typeof getEquippedRank === 'function') ? getEquippedRank() : (userProfile.equipped_rank || null);
+
     try {
-        const encodedUsername = encodeURIComponent(recipientUsername);
-        const profiles = await supabase.select('profiles', '*', `username=eq.${encodedUsername}`);
-        if (!profiles || profiles.length === 0) {
-            showToast('User not found', 'error');
+        const result = await supabase.rpc('process_donation', {
+            p_sender_id: currentUser.id,
+            p_recipient_username: recipientUsername,
+            p_amount: amount,
+            p_sender_username: userProfile.username,
+            p_from_is_owner: senderIsOwner,
+            p_from_rank: senderRank
+        });
+
+        if (!result || !result.success) {
+            showToast(result?.error || 'Donation failed', 'error');
             return;
         }
 
-        const recipient = profiles[0];
-        const recipientBalance = safeParseNumber(recipient.high_score);
+        userBalance = safeParseNumber(result.new_sender_balance);
+        updateBalanceDisplay();
 
-        // Add to recipient FIRST — if this fails, sender keeps money
-        const newRecipientBalance = Math.min(recipientBalance + amount, Number.MAX_SAFE_INTEGER);
-        await supabase.update('profiles',
-            { high_score: newRecipientBalance },
-            `id=eq.${recipient.id}`
-        );
-
-        // Then deduct from sender
-        await updateBalance(userBalance - amount);
-
-        // Create donation record
-        await supabase.insert('donations', {
-            from_user_id: currentUser.id,
-            from_username: userProfile.username,
-            to_user_id: recipient.id,
-            to_username: recipientUsername,
-            amount: amount,
-            seen: false
-        });
-
-        // Notify via socket with tag info (same pattern as cases.js)
         if (typeof socket !== 'undefined' && socket && socket.connected) {
             socket.emit('donation_sent', {
                 fromUsername: userProfile.username,
-                fromIsOwner: isOwner(),
-                fromRank: (userProfile.equipped_rank || null),
-                toUsername: recipientUsername,
-                toUserId: recipient.id,
+                fromIsOwner: senderIsOwner,
+                fromRank: senderRank,
+                toUsername: result.recipient_username,
+                toUserId: result.recipient_id,
                 amount: amount
             });
         }
 
-        showToast(`Donated ${amount.toLocaleString()} Astraphobia to ${recipientUsername}!`, 'success');
+        showToast(`Donated ${amount.toLocaleString()} Astraphobia to ${result.recipient_username}!`, 'success');
         document.getElementById('donateUsername').value = '';
         document.getElementById('donateAmount').value = '';
 
     } catch (e) {
         console.error('Donation error:', e);
-        showToast('Donation error: ' + e.message, 'error');
+        showToast('Donation failed: ' + e.message, 'error');
     }
 }
 
-// Called ONCE on login — catches donations missed while offline
 async function checkDonationNotifications() {
     if (!currentUser) return;
 
@@ -77,23 +85,24 @@ async function checkDonationNotifications() {
             'created_at.desc');
 
         if (donations && donations.length > 0) {
-            // Mark ALL as seen FIRST to prevent duplicates
             for (const d of donations) {
                 await supabase.update('donations', { seen: true }, `id=eq.${d.id}`);
             }
 
-            // Then show notifications using renderNameWithTags from cases.js
             for (const d of donations) {
-                let senderRank = null;
-                try {
-                    const sp = await supabase.select('profiles', 'equipped_rank', `id=eq.${d.from_user_id}`);
-                    if (sp && sp.length > 0) senderRank = sp[0].equipped_rank || null;
-                } catch (e) {}
+                let senderIsOwner = d.from_is_owner || false;
+                let senderRank = d.from_rank || null;
 
+                if (!senderRank) {
+                    try {
+                        const sp = await supabase.select('profiles', 'equipped_rank', `id=eq.${d.from_user_id}`);
+                        if (sp && sp.length > 0) senderRank = sp[0].equipped_rank || null;
+                    } catch (e) {}
+                }
+
+                const display = buildDonorDisplay(d.from_username, senderIsOwner, senderRank);
                 const amt = safeParseNumber(d.amount);
-                const display = (typeof renderNameWithTags === 'function')
-                    ? renderNameWithTags(d.from_username, false, senderRank)
-                    : escapeHtml(d.from_username);
+
                 showToast(`${display} donated ${amt.toLocaleString()} Astraphobia to you!`, 'success');
             }
 
@@ -104,7 +113,6 @@ async function checkDonationNotifications() {
     }
 }
 
-// Mark all unseen donations as seen (called after socket notification to prevent duplicates)
 async function markDonationsAsSeen() {
     if (!currentUser) return;
     try {
@@ -117,7 +125,3 @@ async function markDonationsAsSeen() {
         }
     } catch (e) {}
 }
-
-// NO setInterval — that was causing duplicate notifications
-// Real-time: socket 'donation_received' in app.js
-// Missed offline: checkDonationNotifications() called once on login
