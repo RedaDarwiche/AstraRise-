@@ -187,7 +187,7 @@ class SupabaseClient {
         return JSON.parse(text);
     }
 
-    async select(table, columns = '*', filters = '', order = '', limit = '') {
+        async select(table, columns = '*', filters = '', order = '', limit = '') {
         return this.query(table, 'GET', { select: columns, filters, order, limit });
     }
 
@@ -209,6 +209,37 @@ class SupabaseClient {
 
     async selectSingle(table, columns = '*', filters = '') {
         return this.query(table, 'GET', { select: columns, filters, single: true });
+    }
+
+    async rpc(fnName, params = {}) {
+        const doFetch = async () => {
+            const res = await fetch(`${this.url}/rest/v1/rpc/${fnName}`, {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify(params)
+            });
+            return res;
+        };
+
+        let res = await doFetch();
+
+        if (res.status === 401) {
+            const refreshed = await this.refreshToken();
+            if (refreshed) {
+                res = await doFetch();
+            } else {
+                throw new Error('Session expired. Please login again.');
+            }
+        }
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ message: 'RPC failed' }));
+            throw new Error(err.message || err.details || 'RPC error');
+        }
+
+        const text = await res.text();
+        if (!text) return null;
+        return JSON.parse(text);
     }
 }
 
