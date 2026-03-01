@@ -127,10 +127,6 @@
                     <svg viewBox="0 0 24 24" width="22" height="22"><rect x="4" y="16" width="5" height="6" rx="1" fill="#a29bfe"/><rect x="10" y="10" width="5" height="12" rx="1" fill="#6c5ce7"/><rect x="16" y="4" width="5" height="18" rx="1" fill="#a29bfe"/></svg>
                     <span>Towers</span>
                 </button>
-                <button class="game-item" onclick="navigateTo('roulette')">
-                    <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" fill="none" stroke="#a29bfe" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="#6c5ce7" stroke-width="1.5"/><circle cx="12" cy="5" r="1.5" fill="#ff4757"/><circle cx="17" cy="9" r="1.5" fill="#2d3436"/><circle cx="17" cy="15" r="1.5" fill="#00b894"/><circle cx="12" cy="19" r="1.5" fill="#ff4757"/><circle cx="7" cy="15" r="1.5" fill="#2d3436"/><circle cx="7" cy="9" r="1.5" fill="#ff4757"/></svg>
-                    <span>Roulette</span>
-                </button>
                 <button class="game-item" onclick="navigateTo('cases')">
                     <svg viewBox="0 0 24 24" width="22" height="22"><rect x="2" y="7" width="20" height="14" rx="2" fill="none" stroke="#a29bfe" stroke-width="1.5"/><path d="M16 7V5a4 4 0 00-8 0v2" stroke="#a29bfe" fill="none" stroke-width="1.5"/><line x1="12" y1="11" x2="12" y2="17" stroke="#6c5ce7" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="14" x2="15" y2="14" stroke="#6c5ce7" stroke-width="2" stroke-linecap="round"/></svg>
                     <span>Case Battle</span>
@@ -198,10 +194,6 @@
                         <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><rect x="8" y="32" width="10" height="12" rx="2" fill="#a29bfe"/><rect x="20" y="20" width="10" height="24" rx="2" fill="#6c5ce7"/><rect x="32" y="8" width="10" height="36" rx="2" fill="#a29bfe"/></svg></div>
                         <h3>Towers</h3><p>Climb to the top</p><span class="game-edge">Progressive</span>
                     </div>
-                    <div class="game-card" onclick="navigateTo('roulette')">
-                        <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#a29bfe" stroke-width="2"/><circle cx="24" cy="24" r="8" fill="none" stroke="#6c5ce7" stroke-width="2"/><circle cx="24" cy="8" r="3" fill="#ff4757"/><circle cx="36" cy="18" r="3" fill="#2d3436"/><circle cx="36" cy="30" r="3" fill="#00b894"/><circle cx="24" cy="40" r="3" fill="#ff4757"/><circle cx="12" cy="30" r="3" fill="#2d3436"/><circle cx="12" cy="18" r="3" fill="#ff4757"/></svg></div>
-                        <h3>Roulette</h3><p>Red, Black, or Green</p><span class="game-edge">Classic</span>
-                    </div>
                     <div class="game-card" onclick="navigateTo('cases')">
                         <div class="game-card-icon"><svg viewBox="0 0 48 48" width="48" height="48"><rect x="4" y="14" width="40" height="28" rx="4" fill="#1e1e42" stroke="#a29bfe" stroke-width="2"/><path d="M16 14V10a8 8 0 0116 0v4" stroke="#6c5ce7" fill="none" stroke-width="2"/><line x1="24" y1="22" x2="24" y2="34" stroke="#6c5ce7" stroke-width="3" stroke-linecap="round"/><line x1="18" y1="28" x2="30" y2="28" stroke="#6c5ce7" stroke-width="3" stroke-linecap="round"/></svg></div>
                         <h3>Case Battle</h3><p>Spin tags, winner takes all</p><span class="game-edge">PvP</span>
@@ -265,40 +257,6 @@
 
             <!-- TOWERS -->
             <div class="page" id="page-towers" style="display:none;"><div class="game-container"><div class="game-header"><h2>Towers</h2><p>Climb to the top and cash out</p></div><div class="game-body"><div class="towers-info"><div class="dice-stat"><span>Multiplier</span><span id="towersMultiplier">1.00x</span></div><div class="dice-stat"><span>Profit</span><span id="towersProfit">0.00</span></div></div><div class="towers-grid" id="towersGrid"></div></div><div class="game-controls"><div class="bet-input-group"><label>Bet Amount</label><div class="bet-input-wrapper"><input type="number" id="towersBet" min="1" value="10" class="bet-input"><button class="bet-btn-half" onclick="document.getElementById('towersBet').value=Math.floor(document.getElementById('towersBet').value/2)">1/2</button><button class="bet-btn-double" onclick="document.getElementById('towersBet').value=document.getElementById('towersBet').value*2">2x</button></div></div><div class="bet-input-group"><label>Difficulty</label><select id="towersDifficulty" class="bet-input"><option value="easy">Easy (1/3 mine)</option><option value="medium" selected>Medium (1/2 mine)</option><option value="hard">Hard (2/4 mine)</option></select></div><button class="btn btn-play" id="towersBtn" onclick="startTowers()">Start Game</button><button class="btn btn-cashout" id="towersCashout" onclick="cashoutTowers()" style="display:none;">Cash Out</button></div></div></div>
-
-                        <!-- ROULETTE -->
-            <div class="page" id="page-roulette" style="display:none;">
-                <div class="game-container">
-                    <div class="game-header"><h2>Roulette</h2><p>Pick Red, Black, or Green</p></div>
-                    <div class="game-body">
-                        <div class="roulette-visual">
-                            <div class="roulette-spin-area">
-                                <div class="roulette-pointer-arrow">▼</div>
-                                <div class="roulette-track-wrapper">
-                                    <div class="roulette-track" id="rouletteTrack"></div>
-                                </div>
-                            </div>
-                            <div class="roulette-last-results" id="rouletteHistory"></div>
-                        </div>
-                        <div class="roulette-result" id="rouletteResult">Place your bet</div>
-                    </div>
-                    <div class="game-controls">
-                        <div class="bet-input-group">
-                            <label>Bet Amount</label>
-                            <div class="bet-input-wrapper">
-                                <input type="number" id="rouletteBet" min="1" value="10" class="bet-input">
-                                <button class="bet-btn-half" onclick="document.getElementById('rouletteBet').value=Math.floor(document.getElementById('rouletteBet').value/2)">1/2</button>
-                                <button class="bet-btn-double" onclick="document.getElementById('rouletteBet').value=document.getElementById('rouletteBet').value*2">2x</button>
-                            </div>
-                        </div>
-                        <div class="roulette-bets">
-                            <button class="btn roulette-red" onclick="playRoulette('red')">Red (2x)</button>
-                            <button class="btn roulette-green" onclick="playRoulette('green')">Green (14x)</button>
-                            <button class="btn roulette-black" onclick="playRoulette('black')">Black (2x)</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
                         <!-- CASE BATTLE -->
             <div class="page" id="page-cases" style="display:none;">
