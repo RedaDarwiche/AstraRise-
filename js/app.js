@@ -149,22 +149,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof showAnnouncementBanner === 'function') showAnnouncementBanner(data.text);
         });
 
-        socket.on('donation_received', async (data) => {
-    if (currentUser && (currentUser.id === data.toUserId || (userProfile && userProfile.username === data.toUsername))) {
-        playCashoutSound();
+                socket.on('donation_received', async (data) => {
+            if (currentUser && (currentUser.id === data.toUserId || (userProfile && userProfile.username === data.toUsername))) {
+                playCashoutSound();
 
-        // Use renderNameWithTags from cases.js — shows OWNER + rank tag (double if owner has rank)
-        const display = (typeof renderNameWithTags === 'function')
-            ? renderNameWithTags(data.fromUsername, data.fromIsOwner, data.fromRank)
-            : escapeHtml(data.fromUsername);
+                const display = (typeof buildDonorDisplay === 'function')
+                    ? buildDonorDisplay(data.fromUsername, data.fromIsOwner, data.fromRank)
+                    : escapeHtml(data.fromUsername || 'Someone');
 
-        showToast(`${display} donated ${data.amount.toLocaleString()} Astraphobia to you!`, 'success');
-        if (typeof loadProfile === 'function') await loadProfile();
-
-        // Mark as seen immediately so checkDonationNotifications won't show it again
-        if (typeof markDonationsAsSeen === 'function') markDonationsAsSeen();
-    }
-});
+                showToast(`${display} donated ${data.amount.toLocaleString()} Astraphobia to you!`, 'success');
+                if (typeof loadProfile === 'function') await loadProfile();
+                if (typeof markDonationsAsSeen === 'function') markDonationsAsSeen();
+            }
+        });
 
         // SERVER MODE — affects ALL clients
         socket.on('server_mode_change', (data) => {
@@ -192,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
 
