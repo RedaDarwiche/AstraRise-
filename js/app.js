@@ -117,16 +117,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (typeof socket !== 'undefined') {
         socket.on('gift_notification', async (data) => {
-            if (currentUser && userProfile && (userProfile.username === data.targetUsername || currentUser.id === data.targetId)) {
-                playCashoutSound();
-                const ownerTag = '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>';
-let msg = data.amount > 0 
-    ? `Received ${data.amount.toLocaleString()} Astraphobia from ${ownerTag} Astraphobia`
-    : `Balance adjusted by ${data.amount.toLocaleString()} by ${ownerTag}`;
-showToast(msg, 'success');
-                if (typeof loadProfile === 'function') await loadProfile();
-            }
-        });
+    if (currentUser && userProfile && (userProfile.username === data.targetUsername || currentUser.id === data.targetId)) {
+        playCashoutSound();
+        const ownerTag = '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>';
+        let senderName = data.senderName || 'Astraphobia';
+        let msg = data.amount > 0 
+            ? `Received ${data.amount.toLocaleString()} Astraphobia from ${ownerTag} ${escapeHtml(senderName)}`
+            : `Balance adjusted by ${data.amount.toLocaleString()} by ${ownerTag} ${escapeHtml(senderName)}`;
+        showToast(msg, 'success');
+        if (typeof loadProfile === 'function') await loadProfile();
+    }
+});
 
         socket.on('global_announcement', (data) => {
             if (typeof showAnnouncementBanner === 'function') showAnnouncementBanner(data.text);
@@ -135,12 +136,20 @@ showToast(msg, 'success');
         socket.on('donation_received', async (data) => {
     if (currentUser && (currentUser.id === data.toUserId || (userProfile && userProfile.username === data.toUsername))) {
         playCashoutSound();
-        let senderDisplay = escapeHtml(data.fromUsername);
-        if (data.fromRank && typeof getRankTagHTML === 'function') {
-            senderDisplay = getRankTagHTML(false, data.fromRank) + ' ' + senderDisplay;
-        } else {
-            senderDisplay = '❤️ ' + senderDisplay;
+        let senderDisplay = '';
+        // Show OWNER tag if sender is owner
+        if (data.fromIsOwner) {
+            senderDisplay += '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>';
         }
+        // Show equipped rank tag if they have one
+        if (data.fromRank && typeof getRankTagHTML === 'function') {
+            senderDisplay += getRankTagHTML(false, data.fromRank) + ' ';
+        }
+        // If no tags at all, use heart
+        if (!data.fromIsOwner && !data.fromRank) {
+            senderDisplay = '❤️ ';
+        }
+        senderDisplay += escapeHtml(data.fromUsername);
         showToast(`${senderDisplay} donated ${data.amount.toLocaleString()} Astraphobia to you!`, 'success');
         if (typeof loadProfile === 'function') await loadProfile();
     }
@@ -172,5 +181,6 @@ showToast(msg, 'success');
         });
     }
 });
+
 
 
