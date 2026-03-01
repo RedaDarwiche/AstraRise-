@@ -3134,18 +3134,17 @@ a:hover {
     box-shadow: 0 0 12px rgba(255,255,255,0.3);
     transform: scale(1.02);
 }
-/* ===== SERVER FROZEN — disables ALL bet buttons globally ===== */
 body.server-frozen .btn-play,
-body.server-frozen .roulette-red,
-body.server-frozen .roulette-green,
-body.server-frozen .roulette-black,
-body.server-frozen .coinflip-choices .btn {
+body.server-frozen .btn-cashout,
+body.server-frozen .btn-primary,
+body.server-frozen .coinflip-choices .btn,
+body.server-frozen .game-controls .btn {
     opacity: 0.4 !important;
     pointer-events: none !important;
     cursor: not-allowed !important;
 }
 
-body.server-frozen .btn-play::after {
+body.server-frozen .game-controls .btn::after {
     content: ' (Disabled)';
     font-size: 0.8em;
 }
