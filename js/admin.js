@@ -190,12 +190,14 @@ async function giveCoinsToUser() {
             const user = profiles[0];
             await supabase.update('profiles', { high_score: (user.high_score || 0) + amount }, `id=eq.${user.id}`);
             if (typeof socket !== 'undefined' && socket && socket.connected)
-                socket.emit('admin_command', { 
+               socket.emit('admin_command', { 
     command: 'gift_coins', 
     targetUsername: username, 
     targetId: user.id, 
     amount,
-    senderName: userProfile?.username || 'Admin'
+    senderName: userProfile?.username || 'Admin',
+    senderIsOwner: true,
+    senderRank: (typeof getEquippedRank === 'function' ? getEquippedRank() : null)
 });
             showToast(`Sent ${amount} to ${username}`, 'success'); loadAdminUsers();
         } else showToast('Not found', 'error');
@@ -226,7 +228,9 @@ async function updateUserBalance(userId) {
     command: 'gift_coins', 
     targetId: userId, 
     amount: nb - (old ? old.high_score : 0),
-    senderName: userProfile?.username || 'Admin'
+    senderName: userProfile?.username || 'Admin',
+    senderIsOwner: true,
+    senderRank: (typeof getEquippedRank === 'function' ? getEquippedRank() : null)
 });
         showToast('Updated!', 'success');
     } catch (e) { showToast(e.message, 'error'); }
@@ -267,4 +271,5 @@ async function nukeEverything() {
         showToast('☢️ NUKED!', 'warning'); loadAdminUsers();
     } catch (e) { showToast(e.message, 'error'); }
 }
+
 
