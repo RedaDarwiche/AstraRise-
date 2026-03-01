@@ -133,6 +133,7 @@ async function joinCaseLobby(lobbyId) {
 function playVsBot() {
     if (!currentUser) { showToast('Login', 'error'); return; }
     if (!myActiveLobby) { showToast('Create first', 'error'); return; }
+    if (!canPlaceBet()) return;
     socket.emit('case_bot_join', { lobbyId: myActiveLobby });
 }
 
