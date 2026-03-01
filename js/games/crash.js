@@ -192,7 +192,9 @@ function cashoutCrashUser() {
     if (myBet) {
         myBet.cashedOut = true;
 
-        const winAmount = Math.floor(myCrashBetAmount * crashMultiplierValue);
+        const winAmount = typeof getWinAmount === 'function' 
+    ? getWinAmount(myCrashBetAmount, crashMultiplierValue) 
+    : Math.floor(myCrashBetAmount * crashMultiplierValue);
         myBet.winAmount = winAmount;
         myBet.cashoutMul = crashMultiplierValue;
 
