@@ -1,4 +1,3 @@
-// Case Battle System - Tags visible in battles
 const CASE_TAGS = [
     { id: 'common_tag', name: 'Common', value: 10, color: '#888888', rarity: 40 },
     { id: 'uncommon_tag', name: 'Uncommon', value: 25, color: '#4cd137', rarity: 25 },
@@ -37,10 +36,7 @@ const CASE_TIERS = [
     { id: 'genesis', name: '♾️ Genesis Case', cost: 1000000000, tags: ['void_tag', 'astra_supreme_tag'] }
 ];
 
-let caseSpinning = false;
-let caseLobbyList = [];
-let myActiveLobby = null;
-let caseSocketInit = false;
+let caseSpinning = false, caseLobbyList = [], myActiveLobby = null, caseSocketInit = false;
 
 function getRandomTagFromPool(tagIds) {
     const pool = CASE_TAGS.filter(t => tagIds.includes(t.id));
@@ -53,16 +49,10 @@ function getRandomTagFromPool(tagIds) {
 
 function getSelectedCaseTier() {
     const sel = document.getElementById('caseSelect');
-    if (!sel) return CASE_TIERS[0];
-    return CASE_TIERS.find(t => t.id === sel.value) || CASE_TIERS[0];
+    return sel ? (CASE_TIERS.find(t => t.id === sel.value) || CASE_TIERS[0]) : CASE_TIERS[0];
 }
 
-function formatCaseCost(c) {
-    if (c >= 1e9) return (c/1e9).toFixed(0)+'B';
-    if (c >= 1e6) return (c/1e6).toFixed(0)+'M';
-    if (c >= 1e3) return (c/1e3).toFixed(0)+'K';
-    return c.toString();
-}
+function formatCaseCost(c) { if(c>=1e9)return(c/1e9).toFixed(0)+'B';if(c>=1e6)return(c/1e6).toFixed(0)+'M';if(c>=1e3)return(c/1e3).toFixed(0)+'K';return c.toString(); }
 
 function renderCaseSelect() {
     const sel = document.getElementById('caseSelect');
@@ -70,24 +60,18 @@ function renderCaseSelect() {
     sel.innerHTML = CASE_TIERS.map(t => `<option value="${t.id}">${t.name} — ${formatCaseCost(t.cost)} Astraphobia</option>`).join('');
 }
 
-function getMyRankForBattle() {
-    return typeof getEquippedRank === 'function' ? getEquippedRank() : null;
-}
+function getMyRankForBattle() { return typeof getEquippedRank === 'function' ? getEquippedRank() : null; }
 
 function renderPlayerNameWithTag(name, rankId) {
     let html = escapeHtml(name);
-    if (rankId && typeof getRankTagHTML === 'function') {
-        html = getRankTagHTML(false, rankId) + ' ' + html;
-    }
+    if (rankId && typeof getRankTagHTML === 'function') html = getRankTagHTML(false, rankId) + ' ' + html;
     return html;
 }
 
 function initCaseBattleSocket() {
     if (caseSocketInit || typeof socket === 'undefined' || !socket) return;
     caseSocketInit = true;
-
-    socket.on('case_lobby_list', (lobbies) => { caseLobbyList = lobbies; renderCaseLobbies(); });
-
+    socket.on('case_lobby_list', (l) => { caseLobbyList = l; renderCaseLobbies(); });
     socket.on('case_lobby_created', (lobby) => {
         if (!caseLobbyList.find(l => l.id === lobby.id)) caseLobbyList.push(lobby);
         renderCaseLobbies();
@@ -98,19 +82,12 @@ function initCaseBattleSocket() {
             document.getElementById('caseBotBtn').disabled = false;
         }
     });
-
-    socket.on('case_lobby_removed', (id) => {
-        caseLobbyList = caseLobbyList.filter(l => l.id !== id);
-        if (myActiveLobby === id) myActiveLobby = null;
-        renderCaseLobbies();
-    });
-
+    socket.on('case_lobby_removed', (id) => { caseLobbyList = caseLobbyList.filter(l => l.id !== id); if (myActiveLobby === id) myActiveLobby = null; renderCaseLobbies(); });
     socket.on('case_battle_start', (data) => {
         if (data.player1Id === currentUser?.id || data.player2Id === currentUser?.id) runCaseBattleAnimation(data);
         caseLobbyList = caseLobbyList.filter(l => l.id !== data.lobbyId);
         renderCaseLobbies();
     });
-
     socket.emit('case_get_lobbies');
 }
 
@@ -121,30 +98,17 @@ function renderCaseLobbies() {
     c.innerHTML = caseLobbyList.map(lobby => {
         const mine = currentUser && lobby.creatorId === currentUser.id;
         const tier = CASE_TIERS.find(t => t.id === lobby.caseId) || CASE_TIERS[0];
-        return `<div class="case-lobby-row ${mine?'my-lobby':''}">
-            <div class="case-lobby-info">
-                <span class="case-lobby-user">${escapeHtml(lobby.creatorName)}</span>
-                <span class="case-lobby-case">${tier.name}</span>
-                <span class="case-lobby-cost">${formatCaseCost(tier.cost)} each</span>
-            </div>
-            ${mine ? '<button class="btn btn-sm btn-danger" onclick="cancelMyLobby()">Cancel</button>' :
-            `<button class="btn btn-sm btn-primary" onclick="joinCaseLobby('${lobby.id}')">Join</button>`}
-        </div>`;
+        return `<div class="case-lobby-row ${mine?'my-lobby':''}"><div class="case-lobby-info"><span class="case-lobby-user">${escapeHtml(lobby.creatorName)}</span><span class="case-lobby-case">${tier.name}</span><span class="case-lobby-cost">${formatCaseCost(tier.cost)} each</span></div>${mine?'<button class="btn btn-sm btn-danger" onclick="cancelMyLobby()">Cancel</button>':`<button class="btn btn-sm btn-primary" onclick="joinCaseLobby('${lobby.id}')">Join</button>`}</div>`;
     }).join('');
 }
 
 function createCaseBattle() {
     if (!currentUser) { showToast('Please login', 'error'); return; }
-    if (myActiveLobby) { showToast('Already have a battle', 'warning'); return; }
-    if (typeof canPlaceBet === 'function' && !canPlaceBet()) return;
+    if (myActiveLobby) { showToast('Already have battle', 'warning'); return; }
+    if (!canPlaceBet()) return;
     const tier = getSelectedCaseTier();
     if (userBalance < tier.cost) { showToast('Insufficient balance', 'error'); return; }
-    socket.emit('case_create_lobby', {
-        creatorId: currentUser.id,
-        creatorName: userProfile?.username || 'Player',
-        creatorRank: getMyRankForBattle(),
-        caseId: tier.id, cost: tier.cost
-    });
+    socket.emit('case_create_lobby', { creatorId: currentUser.id, creatorName: userProfile?.username || 'Player', creatorRank: getMyRankForBattle(), caseId: tier.id, cost: tier.cost });
 }
 
 function cancelMyLobby() {
@@ -157,29 +121,24 @@ function cancelMyLobby() {
 }
 
 async function joinCaseLobby(lobbyId) {
-    if (!currentUser) { showToast('Please login', 'error'); return; }
-    if (typeof canPlaceBet === 'function' && !canPlaceBet()) return;
+    if (!currentUser) { showToast('Login', 'error'); return; }
+    if (!canPlaceBet()) return;
     const lobby = caseLobbyList.find(l => l.id === lobbyId);
-    if (!lobby) { showToast('Lobby gone', 'error'); return; }
+    if (!lobby) { showToast('Gone', 'error'); return; }
     const tier = CASE_TIERS.find(t => t.id === lobby.caseId) || CASE_TIERS[0];
     if (userBalance < tier.cost) { showToast('Insufficient balance', 'error'); return; }
-    socket.emit('case_join_lobby', {
-        lobbyId, joinerId: currentUser.id,
-        joinerName: userProfile?.username || 'Player',
-        joinerRank: getMyRankForBattle()
-    });
+    socket.emit('case_join_lobby', { lobbyId, joinerId: currentUser.id, joinerName: userProfile?.username || 'Player', joinerRank: getMyRankForBattle() });
 }
 
 function playVsBot() {
-    if (!currentUser) { showToast('Login first', 'error'); return; }
-    if (!myActiveLobby) { showToast('Create battle first', 'error'); return; }
+    if (!currentUser) { showToast('Login', 'error'); return; }
+    if (!myActiveLobby) { showToast('Create first', 'error'); return; }
     socket.emit('case_bot_join', { lobbyId: myActiveLobby });
 }
 
 async function runCaseBattleAnimation(data) {
     caseSpinning = true;
-    const isP1 = data.player1Id === currentUser?.id;
-    const isP2 = data.player2Id === currentUser?.id;
+    const isP1 = data.player1Id === currentUser?.id, isP2 = data.player2Id === currentUser?.id;
     if (!isP1 && !isP2) return;
 
     const tier = CASE_TIERS.find(t => t.id === data.caseId) || CASE_TIERS[0];
@@ -194,7 +153,6 @@ async function runCaseBattleAnimation(data) {
     const p1Tag = CASE_TAGS.find(t => t.id === data.player1TagId) || CASE_TAGS[0];
     const p2Tag = CASE_TAGS.find(t => t.id === data.player2TagId) || CASE_TAGS[0];
 
-    // Show names WITH rank tags
     document.getElementById('casePlayerLeftName').innerHTML = renderPlayerNameWithTag(data.player1Name, data.player1Rank);
     document.getElementById('casePlayerRightName').innerHTML = renderPlayerNameWithTag(data.player2Name, data.player2Rank);
 
@@ -208,16 +166,8 @@ async function runCaseBattleAnimation(data) {
         document.getElementById('caseResultRight').innerHTML = `<div class="case-final-tag" style="color:${p2Tag.color};border-color:${p2Tag.color};">${p2Tag.name} (${p2Tag.value.toLocaleString()})</div>`;
         const iWin = (isP1 && p1Tag.value >= p2Tag.value) || (isP2 && p2Tag.value > p1Tag.value);
         const res = document.getElementById('caseBattleResult');
-        if (iWin) {
-            playCashoutSound();
-            res.innerHTML = `<span class="case-win">🎉 YOU WIN!</span>`;
-            await addToInventory(p1Tag); await addToInventory(p2Tag);
-            totalWins++;
-            showToast(`Won ${p1Tag.name} + ${p2Tag.name}!`, 'success');
-        } else {
-            res.innerHTML = `<span class="case-lose">💀 You lost!</span>`;
-            showToast('Lost!', 'error');
-        }
+        if (iWin) { playCashoutSound(); res.innerHTML = '<span class="case-win">🎉 YOU WIN!</span>'; await addToInventory(p1Tag); await addToInventory(p2Tag); totalWins++; showToast(`Won ${p1Tag.name} + ${p2Tag.name}!`, 'success'); }
+        else { res.innerHTML = '<span class="case-lose">💀 You lost!</span>'; showToast('Lost!', 'error'); }
         caseSpinning = false; myActiveLobby = null;
         document.getElementById('caseStartBtn').textContent = 'Create Battle';
         document.getElementById('caseStartBtn').disabled = false;
@@ -225,28 +175,36 @@ async function runCaseBattleAnimation(data) {
     }, 4000);
 }
 
+// FIXED: Inner track wrapper so reel container stays in place
 function buildSpinReel(reelId, finalTag, poolIds) {
     const reel = document.getElementById(reelId);
     if (!reel) return;
     const pool = poolIds || CASE_TAGS.map(t => t.id);
     const itemH = 60, fakeCount = 40;
-    let html = '';
+
+    let itemsHtml = '';
     for (let i = 0; i < fakeCount; i++) {
         const t = getRandomTagFromPool(pool);
-        html += `<div class="case-reel-item" style="background:${t.color}12;color:${t.color};border-bottom:1px solid ${t.color}25;"><span class="case-reel-name">${t.name}</span><span class="case-reel-val">${t.value.toLocaleString()}</span></div>`;
+        itemsHtml += `<div class="case-reel-item" style="background:${t.color}12;color:${t.color};border-bottom:1px solid ${t.color}25;"><span class="case-reel-name">${t.name}</span><span class="case-reel-val">${t.value.toLocaleString()}</span></div>`;
     }
-    html += `<div class="case-reel-item case-reel-winner" style="background:${finalTag.color}25;color:${finalTag.color};border:2px solid ${finalTag.color};"><span class="case-reel-name">${finalTag.name}</span><span class="case-reel-val">${finalTag.value.toLocaleString()}</span></div>`;
+    itemsHtml += `<div class="case-reel-item case-reel-winner" style="background:${finalTag.color}25;color:${finalTag.color};border:2px solid ${finalTag.color};"><span class="case-reel-name">${finalTag.name}</span><span class="case-reel-val">${finalTag.value.toLocaleString()}</span></div>`;
     for (let i = 0; i < 5; i++) {
         const t = getRandomTagFromPool(pool);
-        html += `<div class="case-reel-item" style="background:${t.color}12;color:${t.color};border-bottom:1px solid ${t.color}25;"><span class="case-reel-name">${t.name}</span><span class="case-reel-val">${t.value.toLocaleString()}</span></div>`;
+        itemsHtml += `<div class="case-reel-item" style="background:${t.color}12;color:${t.color};border-bottom:1px solid ${t.color}25;"><span class="case-reel-name">${t.name}</span><span class="case-reel-val">${t.value.toLocaleString()}</span></div>`;
     }
-    reel.innerHTML = html;
-    reel.style.transition = 'none';
-    reel.style.transform = 'translateY(0px)';
-    void reel.offsetHeight;
+
+    const trackId = reelId + '_track';
+    reel.innerHTML = `<div class="case-reel-track" id="${trackId}">${itemsHtml}</div>`;
+
+    const track = document.getElementById(trackId);
+    track.style.transition = 'none';
+    track.style.transform = 'translateY(0px)';
+    void track.offsetHeight;
+
+    const targetY = -(fakeCount * itemH);
     setTimeout(() => {
-        reel.style.transition = 'transform 3.5s cubic-bezier(0.12,0.8,0.14,1)';
-        reel.style.transform = `translateY(${-(fakeCount * itemH)}px)`;
+        track.style.transition = 'transform 3.5s cubic-bezier(0.12, 0.8, 0.14, 1)';
+        track.style.transform = `translateY(${targetY}px)`;
     }, 50);
 }
 
@@ -255,12 +213,9 @@ async function addToInventory(tag) {
     const inv = userProfile.inventory || [];
     inv.push({ id: tag.id+'_'+Date.now()+'_'+Math.random().toString(36).substr(2,4), tagId: tag.id, name: tag.name, value: tag.value, color: tag.color, wonAt: new Date().toISOString() });
     userProfile.inventory = inv;
-    try { await supabase.update('profiles', { inventory: inv }, `id=eq.${currentUser.id}`); } catch(e) {}
+    try { await supabase.update('profiles', { inventory: inv }, `id=eq.${currentUser.id}`); } catch(e){}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        renderCaseSelect();
-        if (typeof socket !== 'undefined' && socket) initCaseBattleSocket();
-    }, 1500);
+    setTimeout(() => { renderCaseSelect(); if (typeof socket !== 'undefined' && socket) initCaseBattleSocket(); }, 1500);
 });
