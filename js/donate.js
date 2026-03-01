@@ -1,4 +1,4 @@
-// donate.js — Donations (SERVER-SIDE transfer) + Cooldown + Tags
+// donate.js — SERVER-SIDE Donations + Cooldown + Tags (NO duplicate toasts)
 let donationCooldown = false;
 let donationInFlight = false;
 
@@ -6,7 +6,6 @@ function parseAmountInput(raw) {
   if (raw === null || raw === undefined) return NaN;
   const s = String(raw).trim().toLowerCase().replace(/,/g, '').replace(/\s+/g, '');
 
-  // allow: 1000000, 1m, 1mil, 500k, 2.5m, 1b
   const m = s.match(/^(\d+(\.\d+)?)(k|m|mil|b)?$/i);
   if (!m) return Math.floor(Number(s));
 
@@ -15,7 +14,6 @@ function parseAmountInput(raw) {
   if (suffix === 'k') num *= 1e3;
   if (suffix === 'm' || suffix === 'mil') num *= 1e6;
   if (suffix === 'b') num *= 1e9;
-
   return Math.floor(num);
 }
 
@@ -33,8 +31,7 @@ async function sendDonation() {
   if (!Number.isFinite(amount) || amount < 1) { showToast('Minimum donation is 1', 'error'); return; }
   if (amount > userBalance) { showToast('Insufficient balance', 'error'); return; }
   if (recipientUsername.toLowerCase() === (userProfile.username || '').toLowerCase()) {
-    showToast("You can't donate to yourself!", 'error');
-    return;
+    showToast("You can't donate to yourself!", 'error'); return;
   }
 
   donationInFlight = true;
@@ -43,37 +40,42 @@ async function sendDonation() {
   const donateBtn = document.querySelector('#donateModal .btn-primary.btn-full');
   if (donateBtn) { donateBtn.disabled = true; donateBtn.textContent = 'Sending...'; }
 
-  // cooldown reset (even if server fails, still prevents spam)
   setTimeout(() => {
     donationCooldown = false;
     if (donateBtn) { donateBtn.disabled = false; donateBtn.textContent = 'Send Donation'; }
   }, 5000);
 
   try {
-    // Find recipient id (client can read profiles)
+    // Get recipient id
     const profiles = await supabase.select('profiles', 'id,username', `username=eq.${encodeURIComponent(recipientUsername)}`);
     if (!profiles || profiles.length === 0) {
-      showToast('User not found', 'error');
       donationInFlight = false;
+      showToast('User not found', 'error');
       return;
     }
-
     const recipient = profiles[0];
 
-    const isOwnerUser = currentUser.email === OWNER_EMAIL;
-    const fromRank = (typeof getEquippedRank === 'function') ? getEquippedRank() : null;
-
-    socket.emit('donation_make', {
+    const payload = {
       fromUserId: currentUser.id,
       fromUsername: userProfile.username,
-      fromIsOwner: isOwnerUser,
-      fromRank: fromRank,
-
+      fromIsOwner: currentUser.email === OWNER_EMAIL,
+      fromRank: (typeof getEquippedRank === 'function' ? getEquippedRank() : null),
       toUserId: recipient.id,
       toUsername: recipientUsername,
+      amount
+    };
 
-      amount: amount
-    }, async (resp) => {
+    // 12s safety timeout in case server never ACKs
+    let acked = false;
+    const timeout = setTimeout(() => {
+      if (acked) return;
+      donationInFlight = false;
+      showToast('Donation failed: server did not respond', 'error');
+    }, 12000);
+
+    socket.emit('donation_make', payload, async (resp) => {
+      acked = true;
+      clearTimeout(timeout);
       donationInFlight = false;
 
       if (!resp || !resp.ok) {
@@ -85,7 +87,7 @@ async function sendDonation() {
       document.getElementById('donateUsername').value = '';
       document.getElementById('donateAmount').value = '';
 
-      // reload sender balance (server already deducted)
+      // Refresh sender balance (server already deducted)
       if (typeof loadProfile === 'function') await loadProfile();
     });
 
@@ -95,29 +97,18 @@ async function sendDonation() {
   }
 }
 
-// OPTIONAL: Keep polling only to mark donations as seen + refresh balance.
-// IMPORTANT: DO NOT toast here (socket shows the tag-based toast).
+// Optional: mark seen + refresh (NO toasts here)
 async function checkDonationNotifications() {
   if (!currentUser) return;
-
   try {
-    const donations = await supabase.select(
-      'donations',
-      'id,to_user_id,seen',
-      `to_user_id=eq.${currentUser.id}&seen=eq.false`,
-      'created_at.desc',
-      50
-    );
-
+    const donations = await supabase.select('donations', 'id', `to_user_id=eq.${currentUser.id}&seen=eq.false`, 'created_at.desc', 50);
     if (donations && donations.length > 0) {
       for (const d of donations) {
         try { await supabase.update('donations', { seen: true }, `id=eq.${d.id}`); } catch(e) {}
       }
       if (typeof loadProfile === 'function') await loadProfile();
     }
-  } catch (e) {
-    // ignore missing table or RLS errors
-  }
+  } catch (e) {}
 }
 
 function loadDonateNotifications() {
