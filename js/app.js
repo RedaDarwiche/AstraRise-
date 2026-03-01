@@ -117,16 +117,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (typeof socket !== 'undefined') {
         socket.on('gift_notification', async (data) => {
-    if (currentUser && userProfile && (userProfile.username === data.targetUsername || currentUser.id === data.targetId)) {
-        playCashoutSound();
-        const ownerTag = '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>';
-        let senderName = data.senderName || 'Astraphobia';
-        let msg = data.amount > 0 
-            ? `Received ${data.amount.toLocaleString()} Astraphobia from ${ownerTag} ${escapeHtml(senderName)}`
-            : `Balance adjusted by ${data.amount.toLocaleString()} by ${ownerTag} ${escapeHtml(senderName)}`;
-        showToast(msg, 'success');
-        if (typeof loadProfile === 'function') await loadProfile();
-    }
+  if (currentUser && userProfile && (userProfile.username === data.targetUsername || currentUser.id === data.targetId)) {
+    playCashoutSound();
+
+    // Build OWNER tag only if senderIsOwner is true
+    const ownerTag = data.senderIsOwner
+      ? '<span class="rank-tag rank-owner" style="margin:0 4px;vertical-align:baseline;">OWNER</span>'
+      : '';
+
+    // Build equipped rank tag if senderRank exists
+    const rankTag = (data.senderRank && typeof getRankTagHTML === 'function')
+      ? (getRankTagHTML(false, data.senderRank) + ' ')
+      : '';
+
+    const tags = (ownerTag + rankTag).trim();
+    const tagPrefix = tags ? (tags + ' ') : '';
+
+    const senderName = escapeHtml(data.senderName || 'Admin');
+    const amt = Number(data.amount) || 0;
+
+    const msg = amt >= 0
+      ? `Received ${amt.toLocaleString()} Astraphobia from ${tagPrefix}${senderName}`
+      : `Balance adjusted by ${amt.toLocaleString()} by ${tagPrefix}${senderName}`;
+
+    showToast(msg, 'success');
+    if (typeof loadProfile === 'function') await loadProfile();
+  }
 });
 
         socket.on('global_announcement', (data) => {
@@ -181,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
 
 
