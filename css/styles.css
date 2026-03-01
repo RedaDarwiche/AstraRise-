@@ -3134,3 +3134,94 @@ a:hover {
     box-shadow: 0 0 12px rgba(255,255,255,0.3);
     transform: scale(1.02);
 }
+/* ===== SERVER FROZEN — disables ALL bet buttons globally ===== */
+body.server-frozen .btn-play,
+body.server-frozen .roulette-red,
+body.server-frozen .roulette-green,
+body.server-frozen .roulette-black,
+body.server-frozen .coinflip-choices .btn {
+    opacity: 0.4 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}
+
+body.server-frozen .btn-play::after {
+    content: ' (Disabled)';
+    font-size: 0.8em;
+}
+
+/* ===== CASE REEL TRACK (inner scrolling element) ===== */
+.case-reel-track {
+    position: relative;
+    will-change: transform;
+}
+
+.case-spin-reel {
+    height: 180px;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-tertiary);
+    margin-bottom: 12px;
+}
+
+.case-spin-reel::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 62px;
+    transform: translateY(-50%);
+    border: 2px solid var(--accent-secondary);
+    border-radius: 6px;
+    z-index: 5;
+    pointer-events: none;
+    box-shadow: 0 0 12px rgba(162, 155, 254, 0.3);
+}
+
+.case-spin-reel::after {
+    content: '▶';
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-secondary);
+    font-size: 0.7em;
+    z-index: 6;
+}
+
+.case-reel-item {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-weight: 700;
+    font-size: 0.88em;
+    box-sizing: border-box;
+}
+
+.case-reel-name { flex: 1; }
+.case-reel-val { font-size: 0.8em; opacity: 0.65; margin-left: 8px; }
+.case-reel-winner { font-size: 0.95em; }
+
+/* Admin toggles */
+.admin-toggles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+}
+.admin-danger-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.admin-danger-grid .btn { font-size: 0.85em; padding: 12px; }
+.troll-active {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+    box-shadow: 0 0 12px rgba(255,255,255,0.3);
+    transform: scale(1.02);
+}
